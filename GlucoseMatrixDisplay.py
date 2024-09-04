@@ -3,17 +3,21 @@ import requests
 import os
 import time
 import json
+import datetime
 
 class GlucoseMatrixDisplay:
     def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
         self.matrix_size = matrix_size
         self.min_glucose = min_glucose
         self.max_glucose = max_glucose
+        self.max_time = 20 #minutes
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
         self.url = self.config.get('url')
         self.arrow = ''
         self.glucose_difference = 0
+        self.first_value = None
+        self.second_value = None
         self.update_glucose_data()
 
     def load_config(self, config_path):
@@ -25,16 +29,14 @@ class GlucoseMatrixDisplay:
 
     def update_glucose_data(self):
         self.json_data = self.fetch_json_data()
-        if not self.json_data:
-            return
-        self.points = self.parse_glucose_data()
-        self.command = f"run_in_venv.sh --address {self.ip} --pixel-color {self.list_to_command_string()}"
+        if self.json_data:
+            self.points = self.parse()
+            self.command = f"run_in_venv.sh --address {self.ip} --pixel-color {self.list_to_command_string()}"
 
     def run_command(self):
         print(self.command)
-        exit_code = os.system(self.command)
-        if exit_code != 0:
-            print(f"Command failed with exit code {exit_code}")
+        if os.system(self.command) != 0:
+            print("Command failed.")
             
     def run_command_in_loop(self):
         self.run_command()
@@ -59,36 +61,66 @@ class GlucoseMatrixDisplay:
         normalized = (glucose - self.min_glucose) / (self.max_glucose - self.min_glucose)
         return int((1 - normalized) * available_y_range) + 5
 
+    def set_arrow(self, formmated_json):
+        for item in formmated_json:
+            if item.type == "sgv":
+                self.arrow = item.direction
+                break
 
-    def parse_glucose_data(self):
-        colors = []
-        self.first_value = self.json_data[0].get("sgv")
-        self.second_value = self.json_data[1].get("sgv")
-        self.set_glucose_difference()
+    def parse(self):
+        pixels = []
+        formmated_json = []
         
-        for idx, entry in enumerate(self.json_data):
-            glucose = entry.get("sgv")
-            if glucose is not None:
-                if idx == 0:
-                    self.arrow = entry.get("direction", "Flat")
-                    colors = self.display_glucose_on_matrix(glucose)
-                x = self.matrix_size - idx - 1
-                y = self.glucose_to_y_coordinate(glucose)
-                r, g, b = self.determine_color(glucose)
-                colors.append([x, y, r, g, b])
-        return colors
+        for item in self.json_data:
+            if item.get("type") == "sgv":
+                formmated_json.append(GlucoseItem("sgv",
+                                                  item.get("sgv"),
+                                                  item.get("dateString"),
+                                                  item.get("direction")))
+            elif item.get("type") == "mbg":
+                formmated_json.append(GlucoseItem("mbg",
+                                                  item.get("mbg"),
+                                                  item.get("dateString")))
+        
+        for item in formmated_json:
+            if item.type == "sgv" and not self.first_value:
+                self.first_value = item.glucose
+                continue
+            if item.type == "sgv":
+                self.second_value = item.glucose
+                break
+        
+        self.set_glucose_difference()
+        self.set_arrow(formmated_json)
+        
+        self.main_color = None  # Reset main color
+        
+        pixels = self.display_glucose_on_matrix(self.first_value)
 
-    def determine_color(self, glucose):
+        for idx, entry in enumerate(formmated_json):
+            self.main_color = self.determine_color(entry.glucose, entry_type=entry.type)
+
+            x = self.matrix_size - idx - 1
+            y = self.glucose_to_y_coordinate(entry.glucose)
+            r, g, b = self.main_color
+            pixels.append([x, y, r, g, b])
+            
+        return pixels
+    
+    def determine_color(self, glucose, entry_type="sgv"):
+        if entry_type == "mbg":
+            return Color.purple
+        
         GLUCOSE_LOW = 70
         GLUCOSE_HIGH = 180
         BOUNDARY_THRESHOLD = 10
 
         if glucose <= GLUCOSE_LOW - BOUNDARY_THRESHOLD or glucose >= GLUCOSE_HIGH + BOUNDARY_THRESHOLD:
-            return (255, 20, 10)  # Red
+            return Color.red
         elif glucose <= GLUCOSE_LOW or glucose >= GLUCOSE_HIGH:
-            return (244, 190, 0)  # Yellow
+            return Color.yellow
         else:
-            return (54, 187, 10)  # Green
+            return Color.green
 
     def list_to_command_string(self, delimiter='-'):
         return ' '.join([delimiter.join(map(str, sublist)) for sublist in self.points])
@@ -97,10 +129,7 @@ class GlucoseMatrixDisplay:
         self.glucose_difference = int(self.first_value) - int(self.second_value)
         
     def get_glucose_difference_signal(self):
-        if  self.glucose_difference < 0:
-            return '-'
-        else:
-            return '+'
+        return '-' if self.glucose_difference < 0 else '+'
 
 
     def digit_patterns(self):
@@ -119,17 +148,17 @@ class GlucoseMatrixDisplay:
 
     def arrow_patterns(self):
         return {
-            'SingleUp': np.array([[0, 1, 0],
-                                  [1, 1, 1],
-                                  [0, 1, 0],
-                                  [0, 1, 0],
-                                  [0, 1, 0]]),
+            'SingleUp': np.array([[0, 0, 1, 0, 0],
+                                  [0, 1, 1, 1, 0],
+                                  [1, 0, 1, 0, 1],
+                                  [0, 0, 1, 0, 0],
+                                  [0, 0, 1, 0, 0]]),
             
-            'DoubleUp': np.array([[0, 1, 0, 0, 0, 1, 0],
-                                  [1, 1, 1, 0, 1, 1, 1],
-                                  [0, 1, 0, 0, 0, 1, 0],
-                                  [0, 1, 0, 0, 0, 1, 0],
-                                  [0, 1, 0, 0, 0, 1, 0]]),
+            'DoubleUp': np.array([[0, 1, 0, 0, 1, 0],
+                                  [1, 1, 1, 1, 1, 1],
+                                  [0, 1, 0, 0, 1, 0],
+                                  [0, 1, 0, 0, 1, 0],
+                                  [0, 1, 0, 0, 1, 0]]),
             
             'FortyFiveUp': np.array([[0, 1, 1, 1, 1],
                                      [0, 0, 0, 1, 1],
@@ -149,17 +178,17 @@ class GlucoseMatrixDisplay:
                                        [0, 0, 0, 1, 1],
                                        [0, 0, 1, 1, 1]]),
             
-            'DoubleDown': np.array([[0, 1, 0, 0, 0, 1, 0],
-                                    [0, 1, 0, 0, 0, 1, 0],
-                                    [0, 1, 0, 0, 0, 1, 0],
-                                    [1, 1, 1, 0, 1, 1, 1],
-                                    [0, 1, 0, 0, 0, 1, 0]]),
+            'DoubleDown': np.array([[0, 1, 0, 0, 1, 0],
+                                    [0, 1, 0, 0, 1, 0],
+                                    [0, 1, 0, 0, 1, 0],
+                                    [1, 1, 1, 1, 1, 1],
+                                    [0, 1, 0, 0, 1, 0]]),
             
-            'SingleDown': np.array([[0, 1, 0],
-                                    [0, 1, 0],
-                                    [0, 1, 0],
-                                    [1, 1, 1],
-                                    [0, 1, 0]])
+            'SingleDown': np.array([[0, 0, 1, 0, 0],
+                                    [0, 0, 1, 0, 0],
+                                    [1, 0, 1, 0, 1],
+                                    [0, 1, 1, 1, 0],
+                                    [0, 0, 1, 0, 0]])
         }
 
     def signal_patterns(self):
@@ -177,40 +206,14 @@ class GlucoseMatrixDisplay:
                            [0, 0, 0]])
         }
 
-    def draw_digit(self, color, matrix, digit, position, scale=1):
-        pattern = self.digit_patterns()[digit]
-        start_x, start_y = position
-
-        for i in range(pattern.shape[0]):
-            for j in range(pattern.shape[1]):
-                if pattern[i, j]:
-                    x = start_x + j * scale
-                    y = start_y + i * scale
-                    if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
-                        matrix[x, y] = color
-
-    def draw_arrow(self, color, matrix, arrow, position, scale=1):
-        pattern = self.arrow_patterns()[arrow]
-        start_x, start_y = position
-
-        for i in range(pattern.shape[0]):
-            for j in range(pattern.shape[1]):
-                if pattern[i, j]:
-                    x = start_x + j * scale
-                    y = start_y + i * scale
-                    if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
-                        matrix[x, y] = color
-
-    def draw_signal(self, color, matrix, signal, position, scale=1):
-        pattern = self.signal_patterns()[signal]
-        start_x, start_y = position
-        for i in range(pattern.shape[0]):
-            for j in range(pattern.shape[1]):
-                if pattern[i, j]:
-                    x = start_x + j * scale
-                    y = start_y + i * scale
-                    if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
-                        matrix[x, y] = color
+    def draw_pattern(self, color, matrix, pattern, position, scale=1):
+            start_x, start_y = position
+            for i, row in enumerate(pattern):
+                for j, value in enumerate(row):
+                    if value:
+                        x, y = start_x + j * scale, start_y + i * scale
+                        if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
+                            matrix[x, y] = color
 
     def matrix_to_pixel_list(self, matrix):
         pixel_list = []
@@ -220,57 +223,61 @@ class GlucoseMatrixDisplay:
                     pixel_list.append((x, y, *matrix[x, y]))
         return pixel_list
 
+    def paint_background(self):
+        return f" --fullscreen-color {round(self.color[0]*0.1)}-{round(self.color[1]*0.1)}-{round(self.color[2]*0.1)}"
+
     def display_glucose_on_matrix(self, glucose_value):
         matrix = np.zeros((self.matrix_size, self.matrix_size, 3), dtype=int)
         glucose_str = str(glucose_value)
-        color = (230, 170, 60)  # Color for the digits, arrow, and signal
-        digit_width = 3
-        digit_height = 5
-        spacing = 1
-
-        # Calculate width for the digits
+        color = Color.white
+        digit_width, digit_height, spacing = 3, 5, 1
         digits_width = len(glucose_str) * (digit_width + spacing)
-
-        # Calculate width for the arrow (assuming a fixed width of 5 for arrows)
-        arrow_width = 5 + spacing
-
-        # Calculate width for the signal
-        signal_width = 3 + spacing
-
-        # Calculate width for the glucose difference digits
+        arrow_width, signal_width = 5 + spacing, 3 + spacing
         glucose_diff_str = str(abs(self.glucose_difference))
         glucose_diff_width = len(glucose_diff_str) * (digit_width + spacing)
-
-        # Total width required for all components
         total_width = digits_width + arrow_width + signal_width + glucose_diff_width
-
-        # Calculate the starting x position to center the display on the X-axis
         start_x = (self.matrix_size - total_width) // 2
-        y_position = (self.matrix_size - digit_height) // 2 - 13  # Keep Y-position as before
+        y_position = (self.matrix_size - digit_height) // 2 - 13
 
-        # Draw each digit of the glucose value
-        for idx, digit in enumerate(glucose_str):
-            x_position = start_x + idx * (digit_width + spacing)
-            self.draw_digit(color, matrix, digit, (x_position, y_position))
+        position_x = start_x
+        for digit in glucose_str:
+            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (position_x, y_position))
+            position_x += digit_width + spacing
 
-        # Draw the arrow
-        arrow_x_position = start_x + digits_width
-        self.draw_arrow(color, matrix, self.arrow, (arrow_x_position, y_position))
+        self.draw_pattern(color, matrix, self.arrow_patterns().get(self.arrow, np.zeros((5, 5))), (position_x, y_position))
+        position_x += arrow_width
+        self.draw_pattern(color, matrix, self.signal_patterns()[self.get_glucose_difference_signal()], (position_x, y_position))
+        position_x += signal_width
 
-        # Draw the signal
-        signal_x_position = arrow_x_position + arrow_width
-        self.draw_signal(color, matrix, self.get_glucose_difference_signal(), (signal_x_position, y_position))
+        for digit in glucose_diff_str:
+            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (position_x, y_position))
+            position_x += digit_width + spacing
 
-        # Draw each digit of the glucose difference
-        for idx, digit in enumerate(glucose_diff_str):
-            x_position = signal_x_position + signal_width + idx * (digit_width + spacing)
-            self.draw_digit(color, matrix, digit, (x_position, y_position))
-        
         return self.matrix_to_pixel_list(matrix)
 
+    def is_recent_data(self):
+        current_time_millis = int(datetime.datetime.now().timestamp() * 1000)
+        first_mills = next((item.get("mills") for item in self.json_data if item.get("mills") is not None), None)
+        
+        if first_mills is None:
+            raise ValueError("No 'mills' timestamp found in the JSON data.")
+        
+        time_difference = (current_time_millis - (first_mills - 3600 * 1000 * 3)) / (1000 * 60)
+        return time_difference > self.max_time
+
+class Color:
+    red = (255, 20, 10)
+    green = (54, 187, 10)
+    yellow = (244, 190, 0)
+    purple = (250, 0, 105)
+    white = (230, 170, 60)
+
+class GlucoseItem:
+    def __init__(self, type, glucose, dateString, direction = None):
+        self.type = type
+        self.glucose = glucose
+        self.dateString = dateString
+        self.direction = direction
+            
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
-
-# Example usage:
-# display = GlucoseMatrixDisplay()
-# display.run_command()
