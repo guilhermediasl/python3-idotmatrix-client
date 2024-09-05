@@ -1,3 +1,4 @@
+import subprocess
 import numpy as np
 import requests
 import os
@@ -16,11 +17,12 @@ class GlucoseMatrixDisplay:
         self.url = self.config.get('url')
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
+        self.os = self.config.get('os', 'linux').lower()
         self.arrow = ''
         self.glucose_difference = 0
         self.first_value = None
         self.second_value = None
-        self.update_glucose_data()
+        self.update_glucose_command()
 
     def load_config(self, config_path):
         try:
@@ -29,24 +31,32 @@ class GlucoseMatrixDisplay:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             raise Exception(f"Error loading configuration file: {e}")
 
-    def update_glucose_data(self):
+    def update_glucose_command(self):
         self.json_data = self.fetch_json_data()
         if self.json_data:
             self.points = self.parse()
-            self.command = f"run_in_venv.sh --address {self.ip} --pixel-color {self.list_to_command_string()}"
+            if self.os == 'windows':
+                self.command = f"run_in_venv.bat --address {self.ip} --pixel-color {self.list_to_command_string()}"
+            else:
+                self.command = f"run_in_venv.sh --address {self.ip} --pixel-color {self.list_to_command_string()}"
+
 
     def run_command(self):
         print(self.command)
-        if os.system(self.command) != 0:
-            print("Command failed.")
-            
+        try:
+            result = subprocess.run(self.command, shell=True, check=True)
+            if result.returncode != 0:
+                print("Command failed.")
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with error: {e}")
+
     def run_command_in_loop(self):
         self.run_command()
         while True:
             time.sleep(30)
             current_json = self.fetch_json_data()
             if current_json != self.json_data:
-                self.update_glucose_data()
+                self.update_glucose_command()
                 self.run_command()
 
     def fetch_json_data(self):
@@ -83,7 +93,7 @@ class GlucoseMatrixDisplay:
                 formmated_json.append(GlucoseItem("mbg",
                                                   item.get("mbg"),
                                                   item.get("dateString")))
-        
+
         for item in formmated_json:
             if item.type == "sgv" and not self.first_value:
                 self.first_value = item.glucose
@@ -91,7 +101,7 @@ class GlucoseMatrixDisplay:
             if item.type == "sgv":
                 self.second_value = item.glucose
                 break
-        
+
         self.set_glucose_difference()
         self.set_arrow(formmated_json)
         self.main_color = None
@@ -104,9 +114,9 @@ class GlucoseMatrixDisplay:
             y = self.glucose_to_y_coordinate(entry.glucose)
             r, g, b = self.main_color
             pixels.append([x, y, r, g, b])
-            
+
         return pixels
-    
+
     def determine_color(self, glucose, entry_type="sgv"):
         if entry_type == "mbg":
             return Color.purple
@@ -123,10 +133,9 @@ class GlucoseMatrixDisplay:
 
     def set_glucose_difference(self):
         self.glucose_difference = int(self.first_value) - int(self.second_value)
-        
+
     def get_glucose_difference_signal(self):
         return '-' if self.glucose_difference < 0 else '+'
-
 
     def digit_patterns(self):
         return {
