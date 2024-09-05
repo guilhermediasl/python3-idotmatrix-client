@@ -14,6 +14,8 @@ class GlucoseMatrixDisplay:
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
         self.url = self.config.get('url')
+        self.GLUCOSE_LOW = self.config.get('low bondary glucose')
+        self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.arrow = ''
         self.glucose_difference = 0
         self.first_value = None
@@ -92,9 +94,7 @@ class GlucoseMatrixDisplay:
         
         self.set_glucose_difference()
         self.set_arrow(formmated_json)
-        
-        self.main_color = None  # Reset main color
-        
+        self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
 
         for idx, entry in enumerate(formmated_json):
@@ -110,14 +110,10 @@ class GlucoseMatrixDisplay:
     def determine_color(self, glucose, entry_type="sgv"):
         if entry_type == "mbg":
             return Color.purple
-        
-        GLUCOSE_LOW = 70
-        GLUCOSE_HIGH = 180
-        BOUNDARY_THRESHOLD = 10
 
-        if glucose <= GLUCOSE_LOW - BOUNDARY_THRESHOLD or glucose >= GLUCOSE_HIGH + BOUNDARY_THRESHOLD:
+        if glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
             return Color.red
-        elif glucose <= GLUCOSE_LOW or glucose >= GLUCOSE_HIGH:
+        elif glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
             return Color.yellow
         else:
             return Color.green
