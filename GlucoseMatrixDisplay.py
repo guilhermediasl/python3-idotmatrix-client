@@ -1,7 +1,6 @@
 import subprocess
 import numpy as np
 import requests
-import os
 import time
 import json
 import datetime
@@ -38,7 +37,7 @@ class GlucoseMatrixDisplay:
             if self.os == 'windows':
                 self.command = f"run_in_venv.bat --address {self.ip} --pixel-color {self.list_to_command_string()}"
             else:
-                self.command = f"run_in_venv.sh --address {self.ip} --pixel-color {self.list_to_command_string()}"
+                self.command = f"./run_in_venv.sh --address {self.ip} --pixel-color {self.list_to_command_string()}"
 
 
     def run_command(self):
@@ -82,7 +81,8 @@ class GlucoseMatrixDisplay:
     def parse(self):
         pixels = []
         formmated_json = []
-        
+        first_value_saved_flag = False
+
         for item in self.json_data:
             if item.get("type") == "sgv":
                 formmated_json.append(GlucoseItem("sgv",
@@ -95,8 +95,9 @@ class GlucoseMatrixDisplay:
                                                   item.get("dateString")))
 
         for item in formmated_json:
-            if item.type == "sgv" and not self.first_value:
+            if item.type == "sgv" and not first_value_saved_flag:
                 self.first_value = item.glucose
+                first_value_saved_flag = True
                 continue
             if item.type == "sgv":
                 self.second_value = item.glucose
@@ -115,6 +116,8 @@ class GlucoseMatrixDisplay:
             r, g, b = self.main_color
             pixels.append([x, y, r, g, b])
 
+        for indx, item in enumerate(formmated_json):
+            print(f"{indx}: {item.type} - {item.glucose}")
         return pixels
 
     def determine_color(self, glucose, entry_type="sgv"):
@@ -158,37 +161,37 @@ class GlucoseMatrixDisplay:
                                   [1, 0, 1, 0, 1],
                                   [0, 0, 1, 0, 0],
                                   [0, 0, 1, 0, 0]]),
-            
+
             'DoubleUp': np.array([[0, 1, 0, 0, 1, 0],
                                   [1, 1, 1, 1, 1, 1],
                                   [0, 1, 0, 0, 1, 0],
                                   [0, 1, 0, 0, 1, 0],
                                   [0, 1, 0, 0, 1, 0]]),
-            
+
             'FortyFiveUp': np.array([[0, 1, 1, 1, 1],
                                      [0, 0, 0, 1, 1],
                                      [0, 0, 1, 0, 1],
                                      [0, 1, 0, 0, 1],
                                      [1, 0, 0, 0, 0]]),
-            
+
             'Flat': np.array([[0, 0, 1, 0, 0],
                               [0, 0, 0, 1, 0],
                               [1, 1, 1, 1, 1],
                               [0, 0, 0, 1, 0],
                               [0, 0, 1, 0, 0]]),
-            
+
             'FortyFiveDown': np.array([[1, 0, 0, 0, 0],
                                        [0, 1, 0, 0, 0],
                                        [0, 0, 1, 0, 1],
                                        [0, 0, 0, 1, 1],
                                        [0, 0, 1, 1, 1]]),
-            
+
             'DoubleDown': np.array([[0, 1, 0, 0, 1, 0],
                                     [0, 1, 0, 0, 1, 0],
                                     [0, 1, 0, 0, 1, 0],
                                     [1, 1, 1, 1, 1, 1],
                                     [0, 1, 0, 0, 1, 0]]),
-            
+
             'SingleDown': np.array([[0, 0, 1, 0, 0],
                                     [0, 0, 1, 0, 0],
                                     [1, 0, 1, 0, 1],
@@ -203,7 +206,7 @@ class GlucoseMatrixDisplay:
                            [1, 1, 1],
                            [0, 0, 0],
                            [0, 0, 0]]),
-            
+
             '+': np.array([[0, 0, 0],
                            [0, 1, 0],
                            [1, 1, 1],
@@ -263,10 +266,10 @@ class GlucoseMatrixDisplay:
     def is_recent_data(self):
         current_time_millis = int(datetime.datetime.now().timestamp() * 1000)
         first_mills = next((item.get("mills") for item in self.json_data if item.get("mills") is not None), None)
-        
+
         if first_mills is None:
             raise ValueError("No 'mills' timestamp found in the JSON data.")
-        
+
         time_difference = (current_time_millis - (first_mills - 3600 * 1000 * 3)) / (1000 * 60)
         return time_difference > self.max_time
 
@@ -283,6 +286,6 @@ class GlucoseItem:
         self.glucose = glucose
         self.dateString = dateString
         self.direction = direction
-            
+
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
