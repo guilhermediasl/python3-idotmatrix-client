@@ -288,7 +288,7 @@ class GlucoseMatrixDisplay:
     def fade_color(self, color, percentil):
         fadded_color = []
         for item in color:
-            fadded_color.append(item * percentil)
+            fadded_color.append(int(item * percentil))
         return fadded_color
 
 class Color:
