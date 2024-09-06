@@ -119,8 +119,8 @@ class GlucoseMatrixDisplay:
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
 
-        pixels.extend(self.draw_horizontal_line(y_low, Color.yellow * .3))
-        pixels.extend(self.draw_horizontal_line(y_high, Color.yellow * .3))
+        pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.yellow,.3)))
+        pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.yellow,.3)))
 
         for indx, item in enumerate(formmated_json):
             print(f"{indx}: {item.type} - {item.glucose}")
@@ -284,6 +284,12 @@ class GlucoseMatrixDisplay:
 
         time_difference = (current_time_millis - (first_mills - 3600 * 1000 * 3)) / (1000 * 60)
         return time_difference > self.max_time
+    
+    def fade_color(self, color, percentil):
+        fadded_color = []
+        for item in color:
+            fadded_color.append(item * percentil)
+        return fadded_color
 
 class Color:
     red = [255, 20, 10]
