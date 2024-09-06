@@ -123,7 +123,7 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.8), pixels, 4))
 
         for indx, item in enumerate(formmated_json):
-            print(f"{indx}: {item.type} - {item.glucose}")
+            print(f"{indx:02d}: {item.type} - {item.glucose}")
         return pixels
 
     def determine_color(self, glucose, entry_type="sgv"):
