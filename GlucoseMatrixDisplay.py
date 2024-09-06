@@ -222,7 +222,7 @@ class GlucoseMatrixDisplay:
 
     def draw_horizontal_line(self, y, color, old_pixels, boarder_len):
         pixels = []
-        for x in range(boarder_len - 1, self.matrix_size - (boarder_len - 1)):
+        for x in list(range(boarder_len)) + list(range(self.matrix_size - boarder_len, self.matrix_size)):
             already_paintted = False
             for x_old,y_old,_,_,_ in old_pixels:
                 if x_old == x and y_old == y:
