@@ -299,7 +299,7 @@ class GlucoseMatrixDisplay:
 class Color:
     red = [255, 20, 10]
     green = [54, 187, 10]
-    yellow = [244, 230, 0]
+    yellow = [244, 160, 0]
     purple = [250, 0, 105]
     white = [230, 170, 60]
     blue = [10, 150, 155]
