@@ -119,8 +119,8 @@ class GlucoseMatrixDisplay:
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
 
-        pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.yellow,.1)))
-        pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.yellow,.1)))
+        pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,.1)))
+        pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,.1)))
 
         for indx, item in enumerate(formmated_json):
             print(f"{indx}: {item.type} - {item.glucose}")
