@@ -119,8 +119,8 @@ class GlucoseMatrixDisplay:
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
 
-        pixels.extend(self.draw_horizontal_line(y_low, Color.yellow * (.3, .3, .3)))
-        pixels.extend(self.draw_horizontal_line(y_high, Color.yellow * (.3, .3, .3)))
+        pixels.extend(self.draw_horizontal_line(y_low, Color.yellow * .3))
+        pixels.extend(self.draw_horizontal_line(y_high, Color.yellow * .3))
 
         for indx, item in enumerate(formmated_json):
             print(f"{indx}: {item.type} - {item.glucose}")
@@ -286,11 +286,11 @@ class GlucoseMatrixDisplay:
         return time_difference > self.max_time
 
 class Color:
-    red = (255, 20, 10)
-    green = (54, 187, 10)
-    yellow = (244, 190, 0)
-    purple = (250, 0, 105)
-    white = (230, 170, 60)
+    red = [255, 20, 10]
+    green = [54, 187, 10]
+    yellow = [244, 190, 0]
+    purple = [250, 0, 105]
+    white = [230, 170, 60]
 
 class GlucoseItem:
     def __init__(self, type, glucose, dateString, direction = None):
