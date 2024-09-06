@@ -119,8 +119,8 @@ class GlucoseMatrixDisplay:
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
 
-        pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,.1), pixels))
-        pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,.1), pixels))
+        pixels.extend(self.draw_horizontal_doted_line(y_low, self.fade_color(Color.white,.1), pixels))
+        pixels.extend(self.draw_horizontal_doted_line(y_high, self.fade_color(Color.white,.1), pixels))
 
         for indx, item in enumerate(formmated_json):
             print(f"{indx}: {item.type} - {item.glucose}")
@@ -220,9 +220,11 @@ class GlucoseMatrixDisplay:
                            [0, 0, 0]])
         }
 
-    def draw_horizontal_line(self, y, color, old_pixels):
+    def draw_horizontal_doted_line(self, y, color, old_pixels):
         pixels = []
         for x in range(self.matrix_size):
+            if x % 2 != 0:
+                continue
             already_paintted = False
             for x_old,y_old,_,_,_ in old_pixels:
                 if x_old == x and y_old == y:
