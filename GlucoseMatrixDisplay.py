@@ -52,7 +52,7 @@ class GlucoseMatrixDisplay:
     def run_command_in_loop(self):
         self.run_command()
         while True:
-            time.sleep(30)
+            time.sleep(10)
             current_json = self.fetch_json_data()
             if current_json != self.json_data:
                 self.update_glucose_command()
@@ -115,6 +115,12 @@ class GlucoseMatrixDisplay:
             y = self.glucose_to_y_coordinate(entry.glucose)
             r, g, b = self.main_color
             pixels.append([x, y, r, g, b])
+
+        y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
+        y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
+
+        pixels.extend(self.draw_horizontal_line(y_low, Color.yellow * .3))
+        pixels.extend(self.draw_horizontal_line(y_high, Color.yellow * .3))
 
         for indx, item in enumerate(formmated_json):
             print(f"{indx}: {item.type} - {item.glucose}")
@@ -214,14 +220,20 @@ class GlucoseMatrixDisplay:
                            [0, 0, 0]])
         }
 
+    def draw_horizontal_line(self, y, color):
+        pixels = []
+        for x in range(self.matrix_size):
+            pixels.append([x, y, *color])
+        return pixels
+
     def draw_pattern(self, color, matrix, pattern, position, scale=1):
-            start_x, start_y = position
-            for i, row in enumerate(pattern):
-                for j, value in enumerate(row):
-                    if value:
-                        x, y = start_x + j * scale, start_y + i * scale
-                        if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
-                            matrix[x, y] = color
+        start_x, start_y = position
+        for i, row in enumerate(pattern):
+            for j, value in enumerate(row):
+                if value:
+                    x, y = start_x + j * scale, start_y + i * scale
+                    if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
+                        matrix[x, y] = color
 
     def matrix_to_pixel_list(self, matrix):
         pixel_list = []
