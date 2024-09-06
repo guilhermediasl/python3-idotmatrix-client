@@ -128,9 +128,9 @@ class GlucoseMatrixDisplay:
 
     def determine_color(self, glucose, entry_type="sgv"):
         if entry_type == "mbg":
-            return Color.purple
+            return Color.blue
 
-        if glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
+        if glucose <= self.GLUCOSE_LOW - 10 or glucose >= self.GLUCOSE_HIGH + 10:
             return Color.red
         elif glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
             return Color.yellow
@@ -302,6 +302,7 @@ class Color:
     yellow = [244, 190, 0]
     purple = [250, 0, 105]
     white = [230, 170, 60]
+    blue = [10, 100, 255]
 
 class GlucoseItem:
     def __init__(self, type, glucose, dateString, direction = None):
