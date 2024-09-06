@@ -108,7 +108,7 @@ class GlucoseMatrixDisplay:
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
 
-        for idx, entry in enumerate(formmated_json[:231]):
+        for idx, entry in enumerate(formmated_json[:self.matrix_size]):
             self.main_color = self.determine_color(entry.glucose, entry_type=entry.type)
 
             x = self.matrix_size - idx - 1
