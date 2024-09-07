@@ -119,8 +119,8 @@ class GlucoseMatrixDisplay:
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
 
-        pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.8), pixels, 4))
-        pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.8), pixels, 4))
+        pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.8), pixels, self.matrix_size))
+        pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.8), pixels, self.matrix_size))
 
         for indx, item in enumerate(formmated_json):
             print(f"{indx:02d}: {item.type} - {item.glucose}")
@@ -257,7 +257,11 @@ class GlucoseMatrixDisplay:
         color = Color.white
         digit_width, digit_height, spacing = 3, 5, 1
         digits_width = len(glucose_str) * (digit_width + spacing)
-        arrow_width, signal_width = 5 + spacing, 3 + spacing
+
+        arrow_pattern = self.arrow_patterns().get(self.arrow, np.zeros((5, 5)))
+        arrow_width = arrow_pattern.shape[1] + spacing
+        signal_width = 3 + spacing
+
         glucose_diff_str = str(abs(self.glucose_difference))
         glucose_diff_width = len(glucose_diff_str) * (digit_width + spacing)
         total_width = digits_width + arrow_width + signal_width + glucose_diff_width
@@ -269,7 +273,7 @@ class GlucoseMatrixDisplay:
             self.draw_pattern(color, matrix, self.digit_patterns()[digit], (position_x, y_position))
             position_x += digit_width + spacing
 
-        self.draw_pattern(color, matrix, self.arrow_patterns().get(self.arrow, np.zeros((5, 5))), (position_x, y_position))
+        self.draw_pattern(color, matrix, arrow_pattern, (position_x, y_position))
         position_x += arrow_width
         self.draw_pattern(color, matrix, self.signal_patterns()[self.get_glucose_difference_signal()], (position_x, y_position))
         position_x += signal_width
