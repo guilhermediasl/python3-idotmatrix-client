@@ -41,7 +41,7 @@ class GlucoseMatrixDisplay:
             else:
                 self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image ./output_image.png"
 
-    def draw_matrix(points, width, height):
+    def generate_image(points, width, height):
         # Create a blank matrix filled with black pixels
         matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
 
