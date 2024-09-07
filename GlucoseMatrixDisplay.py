@@ -41,12 +41,12 @@ class GlucoseMatrixDisplay:
             else:
                 self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image ./output_image.png"
 
-    def generate_image(points, width, height):
+    def generate_image(self, width=32, height=32):
         # Create a blank matrix filled with black pixels
         matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
 
         # Assign colors to the specific points
-        for x, y, color in points:
+        for x, y, color in self.points:
             matrix[y][x] = color
 
         # Convert the matrix into a format suitable for PNG (flattened row-by-row)
