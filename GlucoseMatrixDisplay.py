@@ -4,6 +4,7 @@ import requests
 import time
 import json
 import datetime
+import png
 
 class GlucoseMatrixDisplay:
     def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
@@ -34,11 +35,29 @@ class GlucoseMatrixDisplay:
         self.json_data = self.fetch_json_data()
         if self.json_data:
             self.points = self.parse()
+            self.generate_image()
             if self.os == 'windows':
-                self.command = f"run_in_venv.bat --address {self.ip} --pixel-color {self.list_to_command_string()}"
+                self.command = f"run_in_venv.bat --address {self.ip} --image true --set-image ./output_image.png"
             else:
-                self.command = f"./run_in_venv.sh --address {self.ip} --pixel-color {self.list_to_command_string()}"
+                self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image ./output_image.png"
 
+    def draw_matrix(points, width, height):
+        # Create a blank matrix filled with black pixels
+        matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
+
+        # Assign colors to the specific points
+        for x, y, color in points:
+            matrix[y][x] = color
+
+        # Convert the matrix into a format suitable for PNG (flattened row-by-row)
+        png_matrix = []
+        for row in matrix:
+            png_matrix.append([val for pixel in row for val in pixel])  # Flatten RGB tuples
+
+        # Write the image using pypng with minimal metadata
+        with open("output_image.png", "wb") as f:
+            writer = png.Writer(width, height, greyscale=False)
+            writer.write(f, png_matrix)
 
     def run_command(self):
         print(self.command)
