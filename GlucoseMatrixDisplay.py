@@ -46,8 +46,8 @@ class GlucoseMatrixDisplay:
         matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
 
         # Assign colors to the specific points
-        for x, y, color in self.points:
-            matrix[y][x] = color
+        for x, y, r, g, b in self.points:
+            matrix[y][x] = (r,g,b)
 
         # Convert the matrix into a format suitable for PNG (flattened row-by-row)
         png_matrix = []
