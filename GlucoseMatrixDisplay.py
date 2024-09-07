@@ -130,7 +130,7 @@ class GlucoseMatrixDisplay:
         if entry_type == "mbg":
             return Color.blue
 
-        if glucose <= self.GLUCOSE_LOW - 10 or glucose >= self.GLUCOSE_HIGH + 10:
+        if glucose < self.GLUCOSE_LOW - 10 or glucose > self.GLUCOSE_HIGH + 10:
             return Color.red
         elif glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
             return Color.yellow
