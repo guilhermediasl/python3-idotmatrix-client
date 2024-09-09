@@ -5,6 +5,7 @@ import time
 import json
 import datetime
 import png
+import logging
 
 class GlucoseMatrixDisplay:
     def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
@@ -31,15 +32,15 @@ class GlucoseMatrixDisplay:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             raise Exception(f"Error loading configuration file: {e}")
 
-    def update_glucose_command(self):
+    def update_glucose_command(self, image_path="./output_image.png"):
         self.json_data = self.fetch_json_data()
         if self.json_data:
             self.points = self.parse()
             self.generate_image()
             if self.os == 'windows':
-                self.command = f"run_in_venv.bat --address {self.ip} --image true --set-image ./output_image.png"
+                self.command = f"run_in_venv.bat --address {self.ip} --image true --set-image {image_path}"
             else:
-                self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image ./output_image.png"
+                self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image {image_path}"
 
     def generate_image(self, width=32, height=32):
         # Create a blank matrix filled with black pixels
@@ -69,21 +70,40 @@ class GlucoseMatrixDisplay:
             print(f"Command failed with error: {e}")
 
     def run_command_in_loop(self):
+        """Run the command in a loop, updating if new data is fetched."""
         self.run_command()
         while True:
-            time.sleep(10)
-            current_json = self.fetch_json_data()
-            if current_json != self.json_data:
-                self.update_glucose_command()
-                self.run_command()
+            try:
+                time.sleep(10)
+                current_json = self.fetch_json_data()
+                if not current_json:
+                    self.update_glucose_command("./images/nocgmdata.png")
+                    continue
+                if current_json != self.json_data:
+                    self.json_data = current_json
+                    self.update_glucose_command()
+                    self.run_command()
+            except Exception as e:
+                logging.error(f"Error in the loop: {e}")
+                logging.info("Continuing the loop despite the error.")
+                time.sleep(60)
 
-    def fetch_json_data(self):
-        try:
-            response = requests.get(self.url)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Error fetching data: {e}")
+    def fetch_json_data(self, retries=5, delay=60):
+        attempt = 0
+        while attempt < retries:
+            try:
+                response = requests.get(self.url)
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Error fetching data on attempt {attempt + 1}: {e}")
+                attempt += 1
+                if attempt < retries:
+                    logging.info(f"Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    logging.error("Max retries reached. Using last known data.")
+                    return None
 
     def glucose_to_y_coordinate(self, glucose):
         glucose = max(self.min_glucose, min(glucose, self.max_glucose))
