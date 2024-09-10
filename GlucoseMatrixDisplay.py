@@ -34,6 +34,10 @@ class GlucoseMatrixDisplay:
 
     def update_glucose_command(self, image_path="./output_image.png"):
         self.json_data = self.fetch_json_data()
+        if self.is_recent_data():
+            self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image ./images/nocgmdata.png"
+            return
+        
         if self.json_data:
             self.points = self.parse()
             self.generate_image()
