@@ -28,6 +28,7 @@ class GlucoseMatrixDisplay:
         self.first_value = None
         self.second_value = None
         self.update_glucose_command()
+        self.unblock_bluetooth()
 
     def load_config(self, config_path):
         try:
@@ -363,6 +364,14 @@ class GlucoseMatrixDisplay:
         for item in color:
             fadded_color.append(int(item * percentil))
         return fadded_color
+
+    def unblock_bluetooth(self):
+        try:
+            logging.info("Attempting to unblock Bluetooth...")
+            result = subprocess.run(['sudo', 'rfkill', 'unblock', 'bluetooth'], check=True, text=True, capture_output=True)
+            logging.info(f"Bluetooth unblocked successfully: {result.stdout}")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Failed to unblock Bluetooth: {e.stderr}")
 
     def get_brightness_on_hour(self, timezone_str="America/Recife"):
         local_tz = pytz.timezone(timezone_str)
