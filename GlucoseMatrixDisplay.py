@@ -34,7 +34,7 @@ class GlucoseMatrixDisplay:
 
     def update_glucose_command(self, image_path="./output_image.png"):
         self.json_data = self.fetch_json_data()
-        if self.is_recent_data():
+        if self.is_old_data():
             self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image ./images/nocgmdata.png"
             return
         
@@ -327,7 +327,7 @@ class GlucoseMatrixDisplay:
 
         return self.matrix_to_pixel_list(matrix)
 
-    def is_recent_data(self):
+    def is_old_data(self):
         current_time_millis = int(datetime.datetime.now().timestamp() * 1000)
         first_mills = next((item.get("mills") for item in self.json_data if item.get("mills") is not None), None)
 
@@ -335,6 +335,7 @@ class GlucoseMatrixDisplay:
             raise ValueError("No 'mills' timestamp found in the JSON data.")
 
         time_difference = (current_time_millis - (first_mills - 3600 * 1000 * 3)) / (1000 * 60)
+        print(f'json: {first_mills} - currenttime: {current_time_millis} - diff: {time_difference}')
         return time_difference > self.max_time
     
     def fade_color(self, color, percentil):
