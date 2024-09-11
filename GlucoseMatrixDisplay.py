@@ -78,7 +78,7 @@ class GlucoseMatrixDisplay:
             if result.returncode != 0:
                 logging.error("Command failed.")
             else:
-                logging.info("Command executed successfully.")
+                logging.info(f"Command executed successfully, with last glucose: {self.first_value}")
         except subprocess.CalledProcessError as e:
             logging.error(f"Command failed with error: {e}")
 
@@ -368,8 +368,8 @@ class GlucoseMatrixDisplay:
     def unblock_bluetooth(self):
         try:
             logging.info("Attempting to unblock Bluetooth...")
-            result = subprocess.run(['sudo', 'rfkill', 'unblock', 'bluetooth'], check=True, text=True, capture_output=True)
-            logging.info(f"Bluetooth unblocked successfully: {result.stdout}")
+            subprocess.run(['sudo', 'rfkill', 'unblock', 'bluetooth'], check=True, text=True, capture_output=True)
+            logging.info(f"Bluetooth unblocked successfully.")
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to unblock Bluetooth: {e.stderr}")
 
