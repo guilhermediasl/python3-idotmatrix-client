@@ -7,6 +7,8 @@ import datetime
 import pytz
 import png
 import logging
+from http.client import RemoteDisconnected
+
 
 class GlucoseMatrixDisplay:
     def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
@@ -103,6 +105,17 @@ class GlucoseMatrixDisplay:
                 response = requests.get(self.url)
                 response.raise_for_status()
                 return response.json()
+            
+            except RemoteDisconnected as e:
+                logging.error(f"Remote end closed connection on attempt {attempt + 1}: {e}")
+                attempt += 1
+                if attempt < retries:
+                    logging.info(f"Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    logging.error("Max retries reached due to RemoteDisconnected error. Using last known data.")
+                    return None
+            
             except requests.exceptions.RequestException as e:
                 logging.error(f"Error fetching data on attempt {attempt + 1}: {e}")
                 attempt += 1
