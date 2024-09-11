@@ -83,7 +83,7 @@ class GlucoseMatrixDisplay:
             try:
                 time.sleep(10)
                 current_json = self.fetch_json_data()
-                if not current_json:
+                if not current_json or self.is_old_data(current_json):
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
 
@@ -331,9 +331,9 @@ class GlucoseMatrixDisplay:
 
         return self.matrix_to_pixel_list(matrix)
 
-    def is_old_data(self):
+    def is_old_data(self, json):
         current_time_millis = int(datetime.datetime.now().timestamp() * 1000)
-        first_mills = next((item.get("mills") for item in self.json_data if item.get("mills") is not None), None)
+        first_mills = next((item.get("mills") for item in json if item.get("mills") is not None), None)
 
         if first_mills is None:
             raise ValueError("No 'mills' timestamp found in the JSON data.")
