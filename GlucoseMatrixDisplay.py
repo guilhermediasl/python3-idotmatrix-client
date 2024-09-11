@@ -31,16 +31,18 @@ class GlucoseMatrixDisplay:
 
     def load_config(self, config_path):
         try:
+            logging.info(f"Loading configuration from {config_path}")
             with open(config_path, 'r') as file:
-                return json.load(file)
+                config = json.load(file)
+                logging.info(f"Configuration loaded successfully: {config}")
+                return config
         except (FileNotFoundError, json.JSONDecodeError) as e:
+            logging.error(f"Error loading configuration file: {e}")
             raise Exception(f"Error loading configuration file: {e}")
 
     def update_glucose_command(self, image_path="./output_image.png"):
+        logging.info("Updating glucose command.")
         self.json_data = self.fetch_json_data()
-        # if self.is_old_data():
-        #     self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image ./images/nocgmdata.png"
-        #     return
         
         if self.json_data:
             self.points = self.parse()
@@ -49,54 +51,54 @@ class GlucoseMatrixDisplay:
                 self.command = f"run_in_venv.bat --address {self.ip} --image true --set-image {image_path}"
             else:
                 self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image {image_path}"
+        logging.info(f"Command updated: {self.command}")
 
     def generate_image(self, width=32, height=32):
-        
+        logging.info("Generating image.")
         brightness = self.get_brightness_on_hour()
-        # Create a blank matrix filled with black pixels
         matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
 
-        # Assign colors to the specific points
         for x, y, r, g, b in self.points:
-            matrix[y][x] = self.fade_color((r,g,b), brightness)
+            matrix[y][x] = self.fade_color((r, g, b), brightness)
 
-        # Convert the matrix into a format suitable for PNG (flattened row-by-row)
         png_matrix = []
         for row in matrix:
-            png_matrix.append([val for pixel in row for val in pixel])  # Flatten RGB tuples
+            png_matrix.append([val for pixel in row for val in pixel])
 
-        # Write the image using pypng with minimal metadata
         with open("output_image.png", "wb") as f:
             writer = png.Writer(width, height, greyscale=False)
             writer.write(f, png_matrix)
+        logging.info("Image generated and saved as output_image.png.")
 
     def run_command(self):
-        print(self.command)
+        logging.info(f"Running command: {self.command}")
         try:
             result = subprocess.run(self.command, shell=True, check=True)
             if result.returncode != 0:
-                print("Command failed.")
+                logging.error("Command failed.")
+            else:
+                logging.info("Command executed successfully.")
         except subprocess.CalledProcessError as e:
-            print(f"Command failed with error: {e}")
+            logging.error(f"Command failed with error: {e}")
 
     def run_command_in_loop(self):
-        """Run the command in a loop, updating if new data is fetched."""
+        logging.info("Starting command loop.")
         self.run_command()
         while True:
             try:
                 time.sleep(10)
                 current_json = self.fetch_json_data()
                 if not current_json or self.is_old_data(current_json):
+                    logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
-
                 elif current_json != self.json_data:
+                    logging.info("New glucose data detected, updating display.")
                     self.json_data = current_json
                     self.update_glucose_command()
                     self.run_command()
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
-                logging.info("Continuing the loop despite the error.")
                 time.sleep(60)
 
     def fetch_json_data(self, retries=5, delay=60):
@@ -353,7 +355,7 @@ class GlucoseMatrixDisplay:
             raise ValueError("No 'mills' timestamp found in the JSON data.")
 
         time_difference = current_time_millis - first_mills
-        print(f'json: {first_mills} - currenttime: {current_time_millis} - diff: {time_difference}')
+        logging.info(f"Data age: {time_difference} milliseconds.")
         return time_difference > self.max_time
     
     def fade_color(self, color, percentil):
@@ -363,17 +365,16 @@ class GlucoseMatrixDisplay:
         return fadded_color
 
     def get_brightness_on_hour(self, timezone_str="America/Recife"):
-        # Set the timezone based on the string provided
         local_tz = pytz.timezone(timezone_str)
-        
-        # Get the current time in the specified timezone
         current_time = datetime.datetime.now(local_tz)
         current_hour = current_time.hour
-
-        print(f"Current time in {timezone_str}: {current_time}")
+        logging.info(f"Current time in {timezone_str}: {current_time}")
+        
         if 21 <= current_hour or current_hour < 6:
+            logging.info("Setting brightness to 30%.")
             return 0.3  # Dim to 30%
         else:
+            logging.info("Setting brightness to 100%.")
             return 1.0  # Full brightness during the day
         
 class Color:
