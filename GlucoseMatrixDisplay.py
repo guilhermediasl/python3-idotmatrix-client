@@ -349,7 +349,7 @@ class GlucoseMatrixDisplay:
 
     def get_brightness_on_hour(self):
         current_hour = datetime.datetime.now().hour
-        print("current time on get brightness")
+        print(f"current time on get brightness: {current_hour}")
         if 21 <= current_hour or current_hour < 6:
             return 0.3  # Dim to 30%
         else:
