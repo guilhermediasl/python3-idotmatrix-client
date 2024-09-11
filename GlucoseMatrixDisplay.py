@@ -47,12 +47,14 @@ class GlucoseMatrixDisplay:
                 self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image {image_path}"
 
     def generate_image(self, width=32, height=32):
+        
+        brightness = self.get_brightness_on_hour()
         # Create a blank matrix filled with black pixels
         matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
 
         # Assign colors to the specific points
         for x, y, r, g, b in self.points:
-            matrix[y][x] = (r,g,b)
+            matrix[y][x] = self.fade_color((r,g,b), brightness)
 
         # Convert the matrix into a format suitable for PNG (flattened row-by-row)
         png_matrix = []
@@ -82,8 +84,9 @@ class GlucoseMatrixDisplay:
                 current_json = self.fetch_json_data()
                 if not current_json:
                     self.update_glucose_command("./images/nocgmdata.png")
-                    continue
-                if current_json != self.json_data:
+                    self.run_command()
+
+                elif current_json != self.json_data:
                     self.json_data = current_json
                     self.update_glucose_command()
                     self.run_command()
@@ -344,6 +347,14 @@ class GlucoseMatrixDisplay:
             fadded_color.append(int(item * percentil))
         return fadded_color
 
+    def get_brightness_on_hour(self):
+        current_hour = datetime.datetime.now().hour
+        print("current time on get brightness")
+        if 21 <= current_hour or current_hour < 6:
+            return 0.3  # Dim to 30%
+        else:
+            return 1.0  # Full brightness during the day
+        
 class Color:
     red = [255, 20, 10]
     green = [54, 187, 10]
