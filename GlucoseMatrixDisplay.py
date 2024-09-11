@@ -334,7 +334,7 @@ class GlucoseMatrixDisplay:
         if first_mills is None:
             raise ValueError("No 'mills' timestamp found in the JSON data.")
 
-        time_difference = (current_time_millis - (first_mills - 3600 * 1000 * 3)) / (1000 * 60)
+        time_difference = current_time_millis - first_mills
         print(f'json: {first_mills} - currenttime: {current_time_millis} - diff: {time_difference}')
         return time_difference > self.max_time
     
