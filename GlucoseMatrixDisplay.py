@@ -4,6 +4,7 @@ import requests
 import time
 import json
 import datetime
+import pytz
 import png
 import logging
 
@@ -347,9 +348,15 @@ class GlucoseMatrixDisplay:
             fadded_color.append(int(item * percentil))
         return fadded_color
 
-    def get_brightness_on_hour(self):
-        current_hour = datetime.datetime.now().hour
-        print(f"current time on get brightness: {current_hour}")
+    def get_brightness_on_hour(self, timezone_str="America/Recife"):
+        # Set the timezone based on the string provided
+        local_tz = pytz.timezone(timezone_str)
+        
+        # Get the current time in the specified timezone
+        current_time = datetime.datetime.now(local_tz)
+        current_hour = current_time.hour
+
+        print(f"Current time in {timezone_str}: {current_time}")
         if 21 <= current_hour or current_hour < 6:
             return 0.3  # Dim to 30%
         else:
