@@ -27,8 +27,8 @@ class GlucoseMatrixDisplay:
         self.glucose_difference = 0
         self.first_value = None
         self.second_value = None
-        self.update_glucose_command()
         self.unblock_bluetooth()
+        self.update_glucose_command()
 
     def load_config(self, config_path):
         try:
