@@ -182,7 +182,7 @@ class GlucoseMatrixDisplay:
             pixels.append([x, y, r, g, b])
             
             if entry.type == "mbg":
-                pixels.extend(self.paint_around_value(x, y, Color.white))
+                pixels.extend(self.paint_around_value(x, y, Color.white, pixels))
 
 
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
@@ -195,7 +195,7 @@ class GlucoseMatrixDisplay:
             print(f"{indx:02d}: {item.type} - {item.glucose}")
         return pixels
 
-    def paint_around_value(self, x, y, color):
+    def paint_around_value(self, x, y, color, painted_pixels):
         """Paint the pixels around the given (x, y) coordinate."""
         surrounding_pixels = []
         for dx in [-1, 0, 1]:
@@ -204,8 +204,13 @@ class GlucoseMatrixDisplay:
                     continue
                 new_x = x + dx
                 new_y = y + dy
-                if 0 <= new_x < self.matrix_size and 5 <= new_y < self.matrix_size:
-                    surrounding_pixels.append([new_x, new_y, *self.fade_color(color, 1)])  # Apply fade effect
+                already_paintted = False
+                for x_old,y_old,_,_,_ in painted_pixels:
+                    if x_old == new_x and y_old == new_y:
+                        already_paintted = True
+                        break
+                if 0 <= new_x < self.matrix_size and 5 <= new_y < self.matrix_size and not already_paintted:
+                    surrounding_pixels.append([new_x, new_y, *self.fade_color(color, .2)])  # Apply fade effect
         return surrounding_pixels
 
     def determine_color(self, glucose, entry_type="sgv"):
