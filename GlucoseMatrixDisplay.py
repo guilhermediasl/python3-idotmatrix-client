@@ -23,6 +23,7 @@ class GlucoseMatrixDisplay:
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
+        self.night_brightness = float(self.config.get('night_brightness', 0.3))
         self.arrow = ''
         self.glucose_difference = 0
         self.first_value = None
@@ -381,7 +382,7 @@ class GlucoseMatrixDisplay:
         
         if 21 <= current_hour or current_hour < 6:
             logging.info("Setting brightness to 30%.")
-            return 0.3  # Dim to 30%
+            return self.night_brightness
         else:
             logging.info("Setting brightness to 100%.")
             return 1.0  # Full brightness during the day
