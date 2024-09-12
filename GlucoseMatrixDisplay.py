@@ -180,6 +180,10 @@ class GlucoseMatrixDisplay:
             y = self.glucose_to_y_coordinate(entry.glucose)
             r, g, b = self.main_color
             pixels.append([x, y, r, g, b])
+            
+            if entry.type == "sgv":
+                pixels.extend(self.paint_around_value(x, y, Color.white))
+
 
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
@@ -190,6 +194,19 @@ class GlucoseMatrixDisplay:
         for indx, item in enumerate(formmated_json):
             print(f"{indx:02d}: {item.type} - {item.glucose}")
         return pixels
+
+    def paint_around_value(self, x, y, color):
+        """Paint the pixels around the given (x, y) coordinate."""
+        surrounding_pixels = []
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:  # Skip the center pixel
+                    continue
+                new_x = x + dx
+                new_y = y + dy
+                if 0 <= new_x < self.matrix_size and 5 <= new_y < self.matrix_size:
+                    surrounding_pixels.append([new_x, new_y, *self.fade_color(color, 1)])  # Apply fade effect
+        return surrounding_pixels
 
     def determine_color(self, glucose, entry_type="sgv"):
         if entry_type == "mbg":
@@ -385,7 +402,7 @@ class GlucoseMatrixDisplay:
             return self.night_brightness
         else:
             logging.info("Setting brightness to 100%.")
-            return 1.0  # Full brightness during the day
+            return 1.0
         
 class Color:
     red = [255, 20, 10]
