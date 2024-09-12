@@ -181,7 +181,7 @@ class GlucoseMatrixDisplay:
             r, g, b = self.main_color
             pixels.append([x, y, r, g, b])
             
-            if entry.type == "sgv":
+            if entry.type == "mbg":
                 pixels.extend(self.paint_around_value(x, y, Color.white))
 
 
