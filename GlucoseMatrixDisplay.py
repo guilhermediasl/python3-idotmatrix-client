@@ -220,9 +220,6 @@ class GlucoseMatrixDisplay:
         else:
             return Color.green
 
-    def list_to_command_string(self, delimiter='-'):
-        return ' '.join([delimiter.join(map(str, sublist)) for sublist in self.points])
-
     def set_glucose_difference(self):
         self.glucose_difference = int(self.first_value) - int(self.second_value)
 
@@ -312,6 +309,12 @@ class GlucoseMatrixDisplay:
                     already_paintted = True
                     break
             if not already_paintted: pixels.append([x, y, *color])
+        return pixels
+    
+    def draw_vertical_line(self, x, color, old_y_pixel, low_y, high_y):
+        pixels = []
+        for y in list(range(low_y, high_y)):
+            if y != old_y_pixel: pixels.append([x,y, *color])
         return pixels
 
     def draw_pattern(self, color, matrix, pattern, position, scale=1):
@@ -407,7 +410,7 @@ class GlucoseMatrixDisplay:
         
 class Color:
     red = [255, 20, 10]
-    green = [54, 187, 10]
+    green = [65, 187, 10]
     yellow = [244, 190, 0]
     purple = [250, 0, 105]
     white = [230, 170, 70]
