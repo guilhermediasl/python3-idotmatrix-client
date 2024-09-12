@@ -60,8 +60,12 @@ class GlucoseMatrixDisplay:
         brightness = self.get_brightness_on_hour()
         matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
 
-        for x, y, r, g, b in self.points:
-            matrix[y][x] = self.fade_color((r, g, b), brightness)
+        if brightness != 1.0:
+            for x, y, r, g, b in self.points:
+                matrix[y][x] = self.fade_color((r, g, b), brightness)
+        else:
+            for x, y, r, g, b in self.points:
+                matrix[y][x] = (r, g, b)            
 
         png_matrix = []
         for row in matrix:
