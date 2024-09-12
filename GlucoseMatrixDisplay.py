@@ -191,6 +191,8 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
 
+        return pixels
+
     def paint_around_value(self, x, y, color, painted_pixels):
         """Paint the pixels around the given (x, y) coordinate."""
         surrounding_pixels = []
