@@ -191,10 +191,6 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
 
-        for indx, item in enumerate(formmated_json):
-            print(f"{indx:02d}: {item.type} - {item.glucose}")
-        return pixels
-
     def paint_around_value(self, x, y, color, painted_pixels):
         """Paint the pixels around the given (x, y) coordinate."""
         surrounding_pixels = []
@@ -414,7 +410,7 @@ class GlucoseMatrixDisplay:
         
 class Color:
     red = [255, 20, 10]
-    green = [75, 187, 10]
+    green = [60, 187, 10]
     yellow = [244, 170, 0]
     purple = [250, 0, 105]
     white = [230, 170, 70]
