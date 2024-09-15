@@ -19,18 +19,15 @@ class GlucoseMatrixDisplay:
         self.max_time = 1200000 #milliseconds
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
-        self.base_url = self.config.get('base url')
+        self.url = self.config.get('url')
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
-        self.night_brightness = float(self.config.get('night_brightness', 0.2))
-        self.json_count = matrix_size + 8
+        self.night_brightness = float(self.config.get('night_brightness', 0.3))
         self.arrow = ''
         self.glucose_difference = 0
         self.first_value = None
         self.second_value = None
-        self.json_entries = None
-        self.json_treatments = None
         self.unblock_bluetooth()
         self.update_glucose_command()
 
@@ -47,10 +44,9 @@ class GlucoseMatrixDisplay:
 
     def update_glucose_command(self, image_path="./output_image.png"):
         logging.info("Updating glucose command.")
-        self.json_entries = self.fetch_json_data(url_complement= "entries")
-        self.json_treatments = self.fetch_json_data(url_complement= "treatments")
+        self.json_data = self.fetch_json_data()
         
-        if self.json_entries:
+        if self.json_data:
             self.points = self.parse()
             self.generate_image()
             if self.os == 'windows':
@@ -102,20 +98,20 @@ class GlucoseMatrixDisplay:
                     logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
-                elif current_json != self.json_entries:
+                elif current_json != self.json_data:
                     logging.info("New glucose data detected, updating display.")
-                    self.json_entries = current_json
+                    self.json_data = current_json
                     self.update_glucose_command()
                     self.run_command()
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
                 time.sleep(60)
 
-    def fetch_json_data(self, retries=5, delay=60, url_complement=f"entries"):
+    def fetch_json_data(self, retries=5, delay=60):
         attempt = 0
         while attempt < retries:
             try:
-                response = requests.get(f"{self.base_url}/api/v1/{url_complement}.json?count={self.json_count}")
+                response = requests.get(self.url)
                 response.raise_for_status()
                 return response.json()
             
@@ -154,10 +150,9 @@ class GlucoseMatrixDisplay:
     def parse(self):
         pixels = []
         formmated_json = []
-        formmated_treatments = []
         first_value_saved_flag = False
 
-        for item in self.json_entries:
+        for item in self.json_data:
             if item.get("type") == "sgv":
                 formmated_json.append(GlucoseItem("sgv",
                                                   item.get("sgv"),
@@ -176,18 +171,6 @@ class GlucoseMatrixDisplay:
             if item.type == "sgv":
                 self.second_value = item.glucose
                 break
-        
-        if self.json_treatments:
-            for item in self.json_treatments:
-                if item.get("eventType") == "Bolus":
-                    value = item.get("insulin", 0)  # Get insulin value, default to 0 if not present
-                elif item.get("eventType") == "Carbs":
-                    value = item.get("carbs", 0)  # Get carbs value, default to 0 if not present
-                else:
-                    value = None  # Handle other event types if needed
-                formmated_treatments.append(GlucoseItem(type = item.get("eventType"),
-                                                        dateString = item.get("created_at"),
-                                                        value = value))
 
         self.set_glucose_difference()
         self.set_arrow(formmated_json)
@@ -414,33 +397,6 @@ class GlucoseMatrixDisplay:
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to unblock Bluetooth: {e.stderr}")
 
-    def find_matching_date(formmated_entries, formmated_treatments):
-        def parse_date(date_string):
-            # Parse the date string to a datetime object
-            return datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
-        
-        matching_dates = []
-        
-        # Loop through each treatment
-        for treatment in formmated_treatments:
-            treatment_date = parse_date(treatment.dateString)
-            
-            # Loop through formmated_entries to find matching date ranges
-            for i in range(len(formmated_entries) - 1):
-                date_start = parse_date(formmated_entries[i].dateString)
-                date_end = parse_date(formmated_entries[i + 1].dateString)
-                
-                # Check if treatment_date falls between date_start and date_end
-                if date_start <= treatment_date <= date_end:
-                    matching_dates.append({
-                        "treatment_date": treatment.dateString,
-                        "start_date": formmated_entries[i].dateString,
-                        "end_date": formmated_entries[i + 1].dateString
-                    })
-                    break  # Stop once a match is found for this treatment
-
-        return matching_dates
-
     def get_brightness_on_hour(self, timezone_str="America/Recife"):
         local_tz = pytz.timezone(timezone_str)
         current_time = datetime.datetime.now(local_tz)
@@ -463,12 +419,11 @@ class Color:
     blue = [10, 150, 155]
 
 class GlucoseItem:
-    def __init__(self, type, glucose, dateString, value, direction = None):
+    def __init__(self, type, glucose, dateString, direction = None):
         self.type = type
         self.glucose = glucose
         self.dateString = dateString
         self.direction = direction
-        self.treatment = value
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
