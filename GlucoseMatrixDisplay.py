@@ -94,7 +94,7 @@ class GlucoseMatrixDisplay:
             try:
                 time.sleep(10)
                 current_json = self.fetch_json_data()
-                if not current_json or self.is_old_data(current_json):
+                if not current_json or self.is_old_data(current_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
