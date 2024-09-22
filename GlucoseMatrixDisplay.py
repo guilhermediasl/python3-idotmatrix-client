@@ -107,33 +107,38 @@ class GlucoseMatrixDisplay:
                 logging.error(f"Error in the loop: {e}")
                 time.sleep(60)
 
-    def fetch_json_data(self, retries=5, delay=60):
+    def fetch_json_data(self, retries=5, delay=60, fallback_delay=300):
         attempt = 0
-        while attempt < retries:
+        while True:  # Keep trying indefinitely
             try:
-                response = requests.get(self.url)
+                logging.info(f"Fetching glucose data from {self.url}")
+                response = requests.get(self.url, timeout=10)  # Add timeout to prevent hanging
                 response.raise_for_status()
+                logging.info("Glucose data fetched successfully.")
                 return response.json()
             
             except RemoteDisconnected as e:
                 logging.error(f"Remote end closed connection on attempt {attempt + 1}: {e}")
-                attempt += 1
-                if attempt < retries:
-                    logging.info(f"Retrying in {delay} seconds...")
-                    time.sleep(delay)
-                else:
-                    logging.error("Max retries reached due to RemoteDisconnected error. Using last known data.")
-                    return None
+            
+            except requests.exceptions.ConnectionError as e:
+                logging.error(f"Connection error on attempt {attempt + 1}: {e}")
+            
+            except requests.exceptions.Timeout as e:
+                logging.error(f"Request timed out on attempt {attempt + 1}: {e}")
+            
             
             except requests.exceptions.RequestException as e:
                 logging.error(f"Error fetching data on attempt {attempt + 1}: {e}")
-                attempt += 1
-                if attempt < retries:
-                    logging.info(f"Retrying in {delay} seconds...")
-                    time.sleep(delay)
-                else:
-                    logging.error("Max retries reached. Using last known data.")
-                    return None
+            
+            # Handle retries and delays
+            attempt += 1
+            if attempt < retries:
+                logging.info(f"Retrying in {delay} seconds... (Attempt {attempt} of {retries})")
+                time.sleep(delay)
+            else:
+                logging.error(f"Max retries ({retries}) reached. Retrying in {fallback_delay} seconds.")
+                attempt = 0  # Reset attempts after max retries
+                time.sleep(fallback_delay)  # Wait longer before retrying again
 
     def glucose_to_y_coordinate(self, glucose):
         glucose = max(self.min_glucose, min(glucose, self.max_glucose))
@@ -373,15 +378,19 @@ class GlucoseMatrixDisplay:
         return self.matrix_to_pixel_list(matrix)
 
     def is_old_data(self, json):
-        current_time_millis = int(datetime.datetime.now().timestamp() * 1000)
-        first_mills = next((item.get("mills") for item in json if item.get("mills") is not None), None)
+        current_time_ms = int(datetime.datetime.now().timestamp() * 1000)
+        first_timestamp_ms = next((item.get("mills") for item in json if item.get("mills") is not None), None)
 
-        if first_mills is None:
+        if first_timestamp_ms is None:
             raise ValueError("No 'mills' timestamp found in the JSON data.")
 
-        time_difference = current_time_millis - first_mills
-        logging.info(f"Data age: {time_difference} milliseconds.")
-        return time_difference > self.max_time
+        time_difference_ms = current_time_ms - first_timestamp_ms
+        time_difference_sec = time_difference_ms / 1000
+        minutes = int(time_difference_sec // 60)
+        seconds = int(time_difference_sec % 60)
+        
+        logging.info(f"The data is {minutes} minutes and {seconds} seconds old.")
+        return time_difference_ms > self.max_time
     
     def fade_color(self, color, percentil):
         fadded_color = []
@@ -415,7 +424,7 @@ class Color:
     green = [70, 167, 10]
     yellow = [244, 170, 0]
     purple = [250, 0, 105]
-    white = [230, 170, 70]
+    white = [230, 170, 80]
     blue = [10, 150, 155]
 
 class GlucoseItem:
