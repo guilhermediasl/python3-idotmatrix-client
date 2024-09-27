@@ -27,7 +27,7 @@ class GlucoseMatrixDisplay:
         self.arrow = ''
         self.glucose_difference = 0
         self.first_value = None
-        self.second_value = None
+        self.second_value = 0
         self.formmated_json = []
         self.unblock_bluetooth()
         self.update_glucose_command()
@@ -93,7 +93,7 @@ class GlucoseMatrixDisplay:
         self.run_command()
         while True:
             try:
-                time.sleep(10)
+                time.sleep(5)
                 current_json = self.fetch_json_data()
                 if not current_json or self.is_old_data(current_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
@@ -110,10 +110,16 @@ class GlucoseMatrixDisplay:
 
     def fetch_json_data(self, retries=5, delay=60, fallback_delay=300):
         attempt = 0
-        while True:  # Keep trying indefinitely
+        while True:
+            if not self.check_wifi():
+                logging.error("No Wi-Fi connection. Displaying no_wifi image.")
+                self.update_glucose_command("./images/no_wifi.png")
+                self.run_command()
+                continue
+            
             try:
                 logging.info(f"Fetching glucose data from {self.url}")
-                response = requests.get(self.url, timeout=10)  # Add timeout to prevent hanging
+                response = requests.get(self.url, timeout=10)
                 response.raise_for_status()
                 logging.info("Glucose data fetched successfully.")
                 return response.json()
@@ -160,7 +166,7 @@ class GlucoseMatrixDisplay:
         self.extract_first_and_second_value()
         self.set_glucose_difference()
         self.set_arrow()
-        
+
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
 
@@ -181,15 +187,24 @@ class GlucoseMatrixDisplay:
         return pixels
 
     def extract_first_and_second_value(self):
-        first_value_saved_flag = False
         for item in self.formmated_json:
-            if item.type == "sgv" and not first_value_saved_flag:
+            if item.type in ("mbg","sgv") and not self.first_value:
                 self.first_value = item.glucose
-                first_value_saved_flag = True
                 continue
             if item.type == "sgv":
                 self.second_value = item.glucose
                 break
+
+    def check_wifi(self):
+        """Checks Wi-Fi access by pinging Google's DNS server"""
+        logging.info("Checking Wi-Fi connection.")
+        try:
+            subprocess.check_output(["ping", "-c", "1", "8.8.8.8"], timeout=5)
+            logging.info("Wi-Fi is available.")
+            return True
+        except subprocess.CalledProcessError:
+            logging.error("Wi-Fi not available.")
+            return False
 
     def generate_list_from_json(self):
         for item in self.json_data:
