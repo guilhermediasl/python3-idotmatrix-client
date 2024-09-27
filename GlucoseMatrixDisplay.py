@@ -28,6 +28,7 @@ class GlucoseMatrixDisplay:
         self.glucose_difference = 0
         self.first_value = None
         self.second_value = None
+        self.formmated_json = []
         self.unblock_bluetooth()
         self.update_glucose_command()
 
@@ -146,43 +147,24 @@ class GlucoseMatrixDisplay:
         normalized = (glucose - self.min_glucose) / (self.max_glucose - self.min_glucose)
         return int((1 - normalized) * available_y_range) + 5
 
-    def set_arrow(self, formmated_json):
-        for item in formmated_json:
+    def set_arrow(self):
+        for item in self.formmated_json:
             if item.type == "sgv":
                 self.arrow = item.direction
                 break
 
     def parse(self):
         pixels = []
-        formmated_json = []
-        first_value_saved_flag = False
 
-        for item in self.json_data:
-            if item.get("type") == "sgv":
-                formmated_json.append(GlucoseItem("sgv",
-                                                  item.get("sgv"),
-                                                  item.get("dateString"),
-                                                  item.get("direction")))
-            elif item.get("type") == "mbg":
-                formmated_json.append(GlucoseItem("mbg",
-                                                  item.get("mbg"),
-                                                  item.get("dateString")))
-
-        for item in formmated_json:
-            if item.type == "sgv" and not first_value_saved_flag:
-                self.first_value = item.glucose
-                first_value_saved_flag = True
-                continue
-            if item.type == "sgv":
-                self.second_value = item.glucose
-                break
-
+        self.generate_list_from_json()
+        self.extract_first_and_second_value()
         self.set_glucose_difference()
-        self.set_arrow(formmated_json)
+        self.set_arrow()
+        
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
 
-        for idx, entry in enumerate(formmated_json[:self.matrix_size]):
+        for idx, entry in enumerate(self.formmated_json[:self.matrix_size]):
             self.main_color = self.determine_color(entry.glucose, entry_type=entry.type)
 
             x = self.matrix_size - idx - 1
@@ -197,6 +179,29 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
 
         return pixels
+
+    def extract_first_and_second_value(self):
+        first_value_saved_flag = False
+        for item in self.formmated_json:
+            if item.type == "sgv" and not first_value_saved_flag:
+                self.first_value = item.glucose
+                first_value_saved_flag = True
+                continue
+            if item.type == "sgv":
+                self.second_value = item.glucose
+                break
+
+    def generate_list_from_json(self):
+        for item in self.json_data:
+            if item.get("type") == "sgv":
+                self.formmated_json.append(GlucoseItem("sgv",
+                                                  item.get("sgv"),
+                                                  item.get("dateString"),
+                                                  item.get("direction")))
+            elif item.get("type") == "mbg":
+                self.formmated_json.append(GlucoseItem("mbg",
+                                                  item.get("mbg"),
+                                                  item.get("dateString")))
 
     def paint_around_value(self, x, y, color, painted_pixels):
         """Paint the pixels around the given (x, y) coordinate."""
