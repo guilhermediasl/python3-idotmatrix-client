@@ -19,7 +19,7 @@ class GlucoseMatrixDisplay:
         self.max_time = 1200000 #milliseconds
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
-        self.url_entries = f"{self.config.get('url')}/entreis.json?count=40"
+        self.url_entries = f"{self.config.get('url')}/entries.json?count=40"
         self.url_treatments = f"{self.config.get('url')}/treatments.json?count=40"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
