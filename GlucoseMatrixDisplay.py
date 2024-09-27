@@ -19,7 +19,8 @@ class GlucoseMatrixDisplay:
         self.max_time = 1200000 #milliseconds
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
-        self.url = self.config.get('url')
+        self.url_entries = f"{self.config.get('url')}/entreis.json?count=40"
+        self.url_treatments = f"{self.config.get('url')}/treatments.json?count=40"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
@@ -28,7 +29,7 @@ class GlucoseMatrixDisplay:
         self.glucose_difference = 0
         self.first_value = None
         self.second_value = 0
-        self.formmated_json = []
+        self.formmated_entries_json = []
         self.unblock_bluetooth()
         self.update_glucose_command()
 
@@ -45,9 +46,9 @@ class GlucoseMatrixDisplay:
 
     def update_glucose_command(self, image_path="./output_image.png"):
         logging.info("Updating glucose command.")
-        self.json_data = self.fetch_json_data()
+        self.json_entries_data = self.fetch_json_data(self.url_entries)
         
-        if self.json_data:
+        if self.json_entries_data:
             self.points = self.parse()
             self.generate_image()
             if self.os == 'windows':
@@ -94,21 +95,21 @@ class GlucoseMatrixDisplay:
         while True:
             try:
                 time.sleep(5)
-                current_json = self.fetch_json_data()
-                if not current_json or self.is_old_data(current_json) and "./images/nocgmdata.png" not in self.command:
+                current_entries_json = self.fetch_json_data(self.url_entries)
+                if not current_entries_json or self.is_old_data(current_entries_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
-                elif current_json != self.json_data:
+                elif current_entries_json != self.json_entries_data:
                     logging.info("New glucose data detected, updating display.")
-                    self.json_data = current_json
+                    self.json_entries_data = current_entries_json
                     self.update_glucose_command()
                     self.run_command()
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
                 time.sleep(60)
 
-    def fetch_json_data(self, retries=5, delay=60, fallback_delay=300):
+    def fetch_json_data(self, url, retries=5, delay=60, fallback_delay=300):
         attempt = 0
         while True:
             if not self.check_wifi():
@@ -118,8 +119,8 @@ class GlucoseMatrixDisplay:
                 continue
             
             try:
-                logging.info(f"Fetching glucose data from {self.url}")
-                response = requests.get(self.url, timeout=10)
+                logging.info(f"Fetching glucose data from {url}")
+                response = requests.get(url, timeout=10)
                 response.raise_for_status()
                 logging.info("Glucose data fetched successfully.")
                 return response.json()
@@ -154,7 +155,7 @@ class GlucoseMatrixDisplay:
         return int((1 - normalized) * available_y_range) + 5
 
     def set_arrow(self):
-        for item in self.formmated_json:
+        for item in self.formmated_entries_json:
             if item.type == "sgv":
                 self.arrow = item.direction
                 break
@@ -170,7 +171,7 @@ class GlucoseMatrixDisplay:
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
 
-        for idx, entry in enumerate(self.formmated_json[:self.matrix_size]):
+        for idx, entry in enumerate(self.formmated_entries_json[:self.matrix_size]):
             self.main_color = self.determine_color(entry.glucose, entry_type=entry.type)
 
             x = self.matrix_size - idx - 1
@@ -187,7 +188,7 @@ class GlucoseMatrixDisplay:
         return pixels
 
     def extract_first_and_second_value(self):
-        for item in self.formmated_json:
+        for item in self.formmated_entries_json:
             if item.type in ("mbg","sgv") and not self.first_value:
                 self.first_value = item.glucose
                 continue
@@ -207,14 +208,14 @@ class GlucoseMatrixDisplay:
             return False
 
     def generate_list_from_json(self):
-        for item in self.json_data:
+        for item in self.json_entries_data:
             if item.get("type") == "sgv":
-                self.formmated_json.append(GlucoseItem("sgv",
+                self.formmated_entries_json.append(GlucoseItem("sgv",
                                                   item.get("sgv"),
                                                   item.get("dateString"),
                                                   item.get("direction")))
             elif item.get("type") == "mbg":
-                self.formmated_json.append(GlucoseItem("mbg",
+                self.formmated_entries_json.append(GlucoseItem("mbg",
                                                   item.get("mbg"),
                                                   item.get("dateString")))
 
