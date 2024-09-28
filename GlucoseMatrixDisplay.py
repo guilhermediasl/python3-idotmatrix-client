@@ -490,7 +490,7 @@ class GlucoseMatrixDisplay:
                 continue  # Skip if treatment is outside of the range
             
             # Find the closest glucose entry to this treatment
-            closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - datetime.datetime.strptime(entry.dateString, "%Y-%m-%dT%H:%M:%S.%fZ")))
+            closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
             x_value = self.formmated_entries_json.index(closest_entry)
             treatment_x_values.append((x_value, treatment.amount, treatment.type))  # x-value and treatment amount for height
         
