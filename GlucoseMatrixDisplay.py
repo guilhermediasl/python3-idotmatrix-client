@@ -220,7 +220,7 @@ class GlucoseMatrixDisplay:
 
     def generate_list_from_entries_json(self):
         for item in self.json_entries_data:
-            treatment_date = datetime.strptime(item.get("dateString"), "%Y-%m-%dT%H:%M:%S.%fZ")
+            treatment_date = datetime.datetime.strptime(item.get("dateString"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("type") == "sgv":
                 self.formmated_entries_json.append(GlucoseItem("sgv",
                                                   item.get("sgv"),
@@ -236,7 +236,7 @@ class GlucoseMatrixDisplay:
 
     def generate_list_from_treatments_json(self):
         for item in self.json_entries_data:
-            treatment_date = datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
+            treatment_date = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("eventType") == "Carbs":
                 self.formmated_treatments_json.append(TreatmentItem("Carbs",
                                                   treatment_date,
