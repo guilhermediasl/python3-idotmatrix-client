@@ -110,6 +110,10 @@ class GlucoseMatrixDisplay:
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
                 time.sleep(60)
+                
+    def reset_formmated_jsons(self):
+        self.formmated_entries_json = []
+        self.formmated_treatments_json = []
 
     def fetch_json_data(self, url, retries=5, delay=60, fallback_delay=300):
         attempt = 0
@@ -186,16 +190,13 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
         
         for treatment in treatments:
-            print(self.draw_vertical_line(treatment[0],
-                                                  Color.blue if treatment[2] == "Bolus" else Color.orange,
-                                                  pixels,
-                                                  y_high,
-                                                  treatment[1]))
             pixels.extend(self.draw_vertical_line(treatment[0],
                                                   Color.blue if treatment[2] == "Bolus" else Color.orange,
                                                   pixels,
                                                   y_high,
                                                   treatment[1]))
+            
+        self.reset_formmated_jsons()
         return pixels
 
     def extract_first_and_second_value(self):
@@ -371,10 +372,15 @@ class GlucoseMatrixDisplay:
             if not already_paintted: pixels.append([x, y, *color])
         return pixels
     
-    def draw_vertical_line(self, x, color, old_y_pixel, low_y, high):
+    def draw_vertical_line(self, x, color, old_pixels, low_y, height):
         pixels = []
-        for y in list(range(low_y, low_y + high)):
-            if y != old_y_pixel: pixels.append([x,y, *color])
+        for y in list(range(low_y, low_y + height)):
+            already_paintted = False
+            for x_old,y_old,_,_,_ in old_pixels:
+                if x_old == x - self.matrix_size - 1 and y_old == y:
+                    already_paintted = True
+                    break
+            if not already_paintted: pixels.append([x - self.matrix_size - 1,y, *color])
         return pixels
 
     def draw_pattern(self, color, matrix, pattern, position, scale=1):
