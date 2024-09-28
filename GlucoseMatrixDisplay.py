@@ -486,12 +486,8 @@ class GlucoseMatrixDisplay:
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
             print(treatment.date, first_entry_time, last_entry_time)
-            if treatment.date < first_entry_time or treatment.date > last_entry_time:
+            if treatment.date > first_entry_time or treatment.date < last_entry_time:
                 continue  # Skip if treatment is outside of the range
-            
-            # Check if treatment is at least 5 minutes apart from first and last entries
-            if (treatment.date - first_entry_time) < datetime.timedelta(minutes=5) or (last_entry_time - treatment.date) < datetime.timedelta(minutes=5):
-                continue  # Skip if treatment is within 5 minutes of the first or last entry
             
             # Find the closest glucose entry to this treatment
             closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
