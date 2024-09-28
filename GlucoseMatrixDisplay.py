@@ -272,7 +272,7 @@ class GlucoseMatrixDisplay:
 
     def determine_color(self, glucose, entry_type="sgv"):
         if entry_type == "mbg":
-            return Color.blue
+            return Color.white
 
         if glucose < self.GLUCOSE_LOW - 10 or glucose > self.GLUCOSE_HIGH + 10:
             return Color.red
