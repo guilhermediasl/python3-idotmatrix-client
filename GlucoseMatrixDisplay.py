@@ -114,12 +114,6 @@ class GlucoseMatrixDisplay:
     def fetch_json_data(self, url, retries=5, delay=60, fallback_delay=300):
         attempt = 0
         while True:
-            if not self.check_wifi():
-                logging.error("No Wi-Fi connection. Displaying no_wifi image.")
-                self.update_glucose_command("./images/no_wifi.png")
-                self.run_command()
-                continue
-            
             try:
                 logging.info(f"Fetching glucose data from {url}")
                 response = requests.get(url, timeout=10)
@@ -207,7 +201,9 @@ class GlucoseMatrixDisplay:
     def extract_first_and_second_value(self):
         first_value_saved_flag = False
         for item in self.formmated_entries_json:
-            if item.type in ("mbg","sgv") and not first_value_saved_flag:
+            print(item)
+            print(item.type)
+            if item.type == "sgv" and not first_value_saved_flag:
                 self.first_value = item.glucose
                 first_value_saved_flag = True
                 continue
@@ -469,10 +465,8 @@ class GlucoseMatrixDisplay:
         logging.info(f"Current time in {timezone_str}: {current_time}")
         
         if 21 <= current_hour or current_hour < 6:
-            logging.info("Setting brightness to 30%.")
             return self.night_brightness
         else:
-            logging.info("Setting brightness to 100%.")
             return 1.0
 
     def get_treatment_x_values(self):
