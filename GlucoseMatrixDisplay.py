@@ -47,7 +47,8 @@ class GlucoseMatrixDisplay:
     def update_glucose_command(self, image_path="./output_image.png"):
         logging.info("Updating glucose command.")
         self.json_entries_data = self.fetch_json_data(self.url_entries)
-        
+        self.json_treatments_data = self.fetch_json_data(self.url_treatments)
+
         if self.json_entries_data:
             self.points = self.parse()
             self.generate_image()
@@ -67,7 +68,7 @@ class GlucoseMatrixDisplay:
                 matrix[y][x] = self.fade_color((r, g, b), brightness)
         else:
             for x, y, r, g, b in self.points:
-                matrix[y][x] = (r, g, b)            
+                matrix[y][x] = (r, g, b)
 
         png_matrix = []
         for row in matrix:
@@ -188,9 +189,11 @@ class GlucoseMatrixDisplay:
         return pixels
 
     def extract_first_and_second_value(self):
+        first_value_saved_flag = False
         for item in self.formmated_entries_json:
-            if item.type in ("mbg","sgv") and not self.first_value:
+            if item.type in ("mbg","sgv") and not first_value_saved_flag:
                 self.first_value = item.glucose
+                first_value_saved_flag = True
                 continue
             if item.type == "sgv":
                 self.second_value = item.glucose
@@ -218,6 +221,17 @@ class GlucoseMatrixDisplay:
                 self.formmated_entries_json.append(GlucoseItem("mbg",
                                                   item.get("mbg"),
                                                   item.get("dateString")))
+
+    def generate_list_from_treatments_json(self):
+        for item in self.json_entries_data:
+            if item.get("eventType") == "Carbs":
+                self.formmated_entries_json.append(TreatmentItem("Carbs",
+                                                  item.get("created_at"),
+                                                  item.get("carbs")))
+            elif item.get("eventType") == "Bolus":
+                self.formmated_entries_json.append(TreatmentItem("Bolus",
+                                                  item.get("created_at"),
+                                                  item.get("insulin")))
 
     def paint_around_value(self, x, y, color, painted_pixels):
         """Paint the pixels around the given (x, y) coordinate."""
@@ -454,6 +468,12 @@ class GlucoseItem:
         self.glucose = glucose
         self.dateString = dateString
         self.direction = direction
+
+class TreatmentItem:
+    def __init__(self, type, dateString, amount):
+        self.type = type
+        self.dateString = dateString
+        self.amount = amount
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
