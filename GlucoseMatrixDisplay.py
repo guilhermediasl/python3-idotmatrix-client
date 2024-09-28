@@ -194,6 +194,8 @@ class GlucoseMatrixDisplay:
                                                   pixels,
                                                   y_low,
                                                   treatment[1]))
+        
+        print(pixels)
         return pixels
 
     def extract_first_and_second_value(self):
