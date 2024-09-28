@@ -30,6 +30,7 @@ class GlucoseMatrixDisplay:
         self.first_value = None
         self.second_value = 0
         self.formmated_entries_json = []
+        self.formmated_treatments_json = []
         self.unblock_bluetooth()
         self.update_glucose_command()
 
@@ -164,10 +165,12 @@ class GlucoseMatrixDisplay:
     def parse(self):
         pixels = []
 
-        self.generate_list_from_json()
+        self.generate_list_from_entries_json()
+        self.generate_list_from_treatments_json()
         self.extract_first_and_second_value()
         self.set_glucose_difference()
         self.set_arrow()
+        treatments = self.get_treatment_x_values()
 
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
@@ -185,7 +188,12 @@ class GlucoseMatrixDisplay:
 
         pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
-
+        for treatment in treatments:
+            pixels.extend(self.draw_vertical_line(treatment[0],
+                                                  Color.blue if treatment[2] == "Bolus" else Color.orange,
+                                                  pixels,
+                                                  y_low,
+                                                  treatment[1]))
         return pixels
 
     def extract_first_and_second_value(self):
@@ -210,27 +218,32 @@ class GlucoseMatrixDisplay:
             logging.error("Wi-Fi not available.")
             return False
 
-    def generate_list_from_json(self):
+    def generate_list_from_entries_json(self):
         for item in self.json_entries_data:
+            treatment_date = datetime.strptime(item.get("dateString"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("type") == "sgv":
                 self.formmated_entries_json.append(GlucoseItem("sgv",
                                                   item.get("sgv"),
-                                                  item.get("dateString"),
+                                                  treatment_date,
                                                   item.get("direction")))
             elif item.get("type") == "mbg":
                 self.formmated_entries_json.append(GlucoseItem("mbg",
                                                   item.get("mbg"),
-                                                  item.get("dateString")))
+                                                  treatment_date))
+            
+            if len(self.formmated_entries_json) == self.matrix_size:
+                break
 
     def generate_list_from_treatments_json(self):
         for item in self.json_entries_data:
+            treatment_date = datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("eventType") == "Carbs":
-                self.formmated_entries_json.append(TreatmentItem("Carbs",
-                                                  item.get("created_at"),
+                self.formmated_treatments_json.append(TreatmentItem("Carbs",
+                                                  treatment_date,
                                                   item.get("carbs")))
             elif item.get("eventType") == "Bolus":
-                self.formmated_entries_json.append(TreatmentItem("Bolus",
-                                                  item.get("created_at"),
+                self.formmated_treatments_json.append(TreatmentItem("Bolus",
+                                                  treatment_date,
                                                   item.get("insulin")))
 
     def paint_around_value(self, x, y, color, painted_pixels):
@@ -453,7 +466,29 @@ class GlucoseMatrixDisplay:
         else:
             logging.info("Setting brightness to 100%.")
             return 1.0
+
+    def get_treatment_x_values(self):
+        treatment_x_values = []
         
+        # Get the timestamps of the first and last glucose entries
+        first_entry_time = self.formmated_entries_json[0].date
+        last_entry_time = self.formmated_entries_json[-1].date
+        
+        # Check if treatments fall within the range
+        for treatment in self.formmated_treatments_json:
+            if treatment.date < first_entry_time or treatment.date > last_entry_time:
+                continue  # Skip if treatment is outside of the range
+            
+            # Check if treatment is at least 5 minutes apart from first and last entries
+            if (treatment.date - first_entry_time) < datetime.timedelta(minutes=5) or (last_entry_time - treatment.date) < datetime.timedelta(minutes=5):
+                continue  # Skip if treatment is within 5 minutes of the first or last entry
+            
+            # Find the closest glucose entry to this treatment
+            closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
+            x_value = self.formmated_entries_json.index(closest_entry)
+            treatment_x_values.append((x_value, treatment.amount, treatment.type))  # x-value and treatment amount for height
+        
+        return treatment_x_values
 class Color:
     red = [255, 20, 10]
     green = [70, 167, 10]
@@ -461,6 +496,7 @@ class Color:
     purple = [250, 0, 105]
     white = [230, 170, 80]
     blue = [10, 150, 155]
+    orange = [255, 165, 0]
 
 class GlucoseItem:
     def __init__(self, type, glucose, dateString, direction = None):
