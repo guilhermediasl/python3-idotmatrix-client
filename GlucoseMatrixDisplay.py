@@ -171,6 +171,8 @@ class GlucoseMatrixDisplay:
         self.set_glucose_difference()
         self.set_arrow()
         treatments = self.get_treatment_x_values()
+        
+        print(treatments)
 
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
