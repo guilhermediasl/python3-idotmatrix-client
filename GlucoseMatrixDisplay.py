@@ -188,14 +188,13 @@ class GlucoseMatrixDisplay:
 
         pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
+        
         for treatment in treatments:
             pixels.extend(self.draw_vertical_line(treatment[0],
                                                   Color.blue if treatment[2] == "Bolus" else Color.orange,
                                                   pixels,
-                                                  y_low,
+                                                  y_high,
                                                   treatment[1]))
-        
-        print(pixels)
         return pixels
 
     def extract_first_and_second_value(self):
