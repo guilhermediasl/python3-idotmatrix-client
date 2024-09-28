@@ -485,7 +485,7 @@ class GlucoseMatrixDisplay:
         
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
-            print(treatment.date, first_entry_time)
+            print(treatment.date, first_entry_time, last_entry_time)
             if treatment.date < first_entry_time or treatment.date > last_entry_time:
                 continue  # Skip if treatment is outside of the range
             
