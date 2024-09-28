@@ -205,6 +205,7 @@ class GlucoseMatrixDisplay:
             print(item.type)
             if item.type == "sgv" and not first_value_saved_flag:
                 self.first_value = item.glucose
+                print("first",self.first_value)
                 first_value_saved_flag = True
                 continue
             if item.type == "sgv":
