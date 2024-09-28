@@ -509,7 +509,7 @@ class GlucoseItem:
 class TreatmentItem:
     def __init__(self, type, dateString, amount):
         self.type = type
-        self.dateString = dateString
+        self.date = dateString
         self.amount = amount
 
 if __name__ == "__main__":
