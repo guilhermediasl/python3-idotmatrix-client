@@ -472,8 +472,8 @@ class GlucoseMatrixDisplay:
         
         # Get the timestamps of the first and last glucose entries
         
-        first_entry_time = datetime.datetime.strptime(self.formmated_entries_json[0].dateString, "%Y-%m-%dT%H:%M:%S.%fZ")
-        last_entry_time = datetime.datetime.strptime(self.formmated_entries_json[-1].dateString, "%Y-%m-%dT%H:%M:%S.%fZ")
+        first_entry_time = self.formmated_entries_json[0]
+        last_entry_time = self.formmated_entries_json[-1]
         
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
