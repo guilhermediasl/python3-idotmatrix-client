@@ -479,16 +479,17 @@ class GlucoseMatrixDisplay:
     def get_treatment_x_values(self):
         treatment_x_values = []
         
-        # Get the timestamps of the first and last glucose entries
-        
+        if not self.formmated_entries_json:
+            logging.warning("No glucose entries available.")
+            return treatment_x_values
+            
         first_entry_time = self.formmated_entries_json[0].dateString
         last_entry_time = self.formmated_entries_json[-1].dateString
         
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
-            print(treatment.date, first_entry_time, last_entry_time)
             if treatment.date > first_entry_time or treatment.date < last_entry_time:
-                continue  # Skip if treatment is outside of the range
+                continue
             
             # Find the closest glucose entry to this treatment
             closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
