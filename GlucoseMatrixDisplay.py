@@ -377,10 +377,10 @@ class GlucoseMatrixDisplay:
         for y in list(range(low_y, low_y + height)):
             already_paintted = False
             for x_old,y_old,_,_,_ in old_pixels:
-                if x_old == x - self.matrix_size - 1 and y_old == y:
+                if x_old == x and y_old == y:
                     already_paintted = True
                     break
-            if not already_paintted: pixels.append([x - self.matrix_size - 1,y, *color])
+            if not already_paintted: pixels.append([ x, y, *color])
         return pixels
 
     def draw_pattern(self, color, matrix, pattern, position, scale=1):
