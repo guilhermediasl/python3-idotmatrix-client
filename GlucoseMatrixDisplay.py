@@ -191,7 +191,7 @@ class GlucoseMatrixDisplay:
         
         for treatment in treatments:
             pixels.extend(self.draw_vertical_line(treatment[0],
-                                                  Color.blue if treatment[2] == "Bolus" else Color.orange,
+                                                  self.fade_color(Color.blue, 0.4) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.4),
                                                   pixels,
                                                   y_high,
                                                   treatment[1]))
