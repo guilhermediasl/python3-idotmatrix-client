@@ -169,8 +169,6 @@ class GlucoseMatrixDisplay:
         self.set_glucose_difference()
         self.set_arrow()
         treatments = self.get_treatment_x_values()
-        
-        print(treatments)
 
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
@@ -202,11 +200,8 @@ class GlucoseMatrixDisplay:
     def extract_first_and_second_value(self):
         first_value_saved_flag = False
         for item in self.formmated_entries_json:
-            print(item)
-            print(item.type)
             if item.type == "sgv" and not first_value_saved_flag:
                 self.first_value = item.glucose
-                print("first",self.first_value)
                 first_value_saved_flag = True
                 continue
             if item.type == "sgv":
