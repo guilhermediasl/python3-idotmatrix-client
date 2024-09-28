@@ -471,8 +471,8 @@ class GlucoseMatrixDisplay:
         treatment_x_values = []
         
         # Get the timestamps of the first and last glucose entries
-        first_entry_time = self.formmated_entries_json[0].date
-        last_entry_time = self.formmated_entries_json[-1].date
+        first_entry_time = self.formmated_treatments_json[0].date
+        last_entry_time = self.formmated_treatments_json[-1].date
         
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
