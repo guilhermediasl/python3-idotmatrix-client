@@ -171,6 +171,9 @@ class GlucoseMatrixDisplay:
         self.set_glucose_difference()
         self.set_arrow()
         treatments = self.get_treatment_x_values()
+        
+        time_diff = self.calculate_time_difference()
+        print(f"time difference: {time_diff}")
 
         self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
@@ -462,9 +465,9 @@ class GlucoseMatrixDisplay:
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to unblock Bluetooth: {e.stderr}")
 
-    def calculate_time_difference(self, last_reading_time):
+    def calculate_time_difference(self):
         current_time = datetime.datetime.now()
-        time_difference = current_time - last_reading_time
+        time_difference = current_time - self.formmated_entries_json[0].dateString
         minutes_difference = time_difference.total_seconds() // 60
         return int(minutes_difference)
 
