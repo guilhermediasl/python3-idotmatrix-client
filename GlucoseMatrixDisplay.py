@@ -106,6 +106,7 @@ class GlucoseMatrixDisplay:
                     logging.info("New glucose data detected, updating display.")
                     self.json_entries_data = current_entries_json
                     self.update_glucose_command()
+                    print(self.calculate_time_difference(self.formmated_entries_json[0].dateString))
                     self.run_command()
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
@@ -462,6 +463,12 @@ class GlucoseMatrixDisplay:
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to unblock Bluetooth: {e.stderr}")
 
+    def calculate_time_difference(self, last_reading_time):
+        current_time = datetime.datetime.now()
+        time_difference = current_time - last_reading_time
+        minutes_difference = time_difference.total_seconds() // 60
+        return int(minutes_difference)
+
     def get_brightness_on_hour(self, timezone_str="America/Recife"):
         local_tz = pytz.timezone(timezone_str)
         current_time = datetime.datetime.now(local_tz)
@@ -504,10 +511,10 @@ class Color:
     orange = [255, 90, 0]
 
 class GlucoseItem:
-    def __init__(self, type, glucose, dateString, direction = None):
+    def __init__(self, type: str, glucose: int, dateString, direction : str = None):
         self.type = type
         self.glucose = glucose
-        self.dateString = dateString
+        self.dateString = dateString 
         self.direction = direction
 
 class TreatmentItem:
