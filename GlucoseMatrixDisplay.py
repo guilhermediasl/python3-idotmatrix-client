@@ -127,6 +127,8 @@ class GlucoseMatrixDisplay:
             
             except RemoteDisconnected as e:
                 logging.error(f"Remote end closed connection on attempt {attempt + 1}: {e}")
+                self.update_glucose_command("./images/no_wifi.png")
+                self.run_command()
             
             except requests.exceptions.ConnectionError as e:
                 logging.error(f"Connection error on attempt {attempt + 1}: {e}")
@@ -189,7 +191,7 @@ class GlucoseMatrixDisplay:
         
         for treatment in treatments:
             pixels.extend(self.draw_vertical_line(treatment[0],
-                                                  self.fade_color(Color.blue, 0.4) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.4),
+                                                  self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.3),
                                                   pixels,
                                                   y_high,
                                                   treatment[1]))
@@ -369,7 +371,7 @@ class GlucoseMatrixDisplay:
     
     def draw_vertical_line(self, x, color, old_pixels, low_y, height):
         pixels = []
-        for y in list(range(low_y, low_y + height)):
+        for y in list(range(low_y, low_y + height + 1)):
             already_paintted = False
             for x_old,y_old,_,_,_ in old_pixels:
                 if x_old == x and y_old == y:
@@ -499,7 +501,7 @@ class Color:
     purple = [250, 0, 105]
     white = [230, 170, 80]
     blue = [10, 150, 155]
-    orange = [255, 90, 0]
+    orange = [210, 80, 10]
 
 class GlucoseItem:
     def __init__(self, type, glucose, dateString, direction = None):
