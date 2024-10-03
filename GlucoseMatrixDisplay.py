@@ -106,7 +106,6 @@ class GlucoseMatrixDisplay:
                     logging.info("New glucose data detected, updating display.")
                     self.json_entries_data = current_entries_json
                     self.update_glucose_command()
-                    print(self.calculate_time_difference(self.formmated_entries_json[0].dateString))
                     self.run_command()
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
