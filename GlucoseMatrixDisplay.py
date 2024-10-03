@@ -501,7 +501,7 @@ class Color:
     purple = [250, 0, 105]
     white = [230, 170, 80]
     blue = [20, 150, 135]
-    orange = [255, 200, 0]
+    orange = [255, 80, 0]
 
 class GlucoseItem:
     def __init__(self, type, glucose, dateString, direction = None):
