@@ -21,6 +21,7 @@ class GlucoseMatrixDisplay:
         self.ip = self.config.get('ip')
         self.url_entries = f"{self.config.get('url')}/entries.json?count=40"
         self.url_treatments = f"{self.config.get('url')}/treatments.json?count=40"
+        self.url_ping_entries = f"{self.config.get('url')}/entries.json?count=1"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
@@ -31,6 +32,7 @@ class GlucoseMatrixDisplay:
         self.second_value = 0
         self.formmated_entries_json = []
         self.formmated_treatments_json = []
+        self.newer_id = None
         self.unblock_bluetooth()
         self.update_glucose_command()
 
@@ -96,21 +98,22 @@ class GlucoseMatrixDisplay:
         self.run_command()
         while True:
             try:
-                time.sleep(5)
-                current_entries_json = self.fetch_json_data(self.url_entries)
-                if not current_entries_json or self.is_old_data(current_entries_json) and "./images/nocgmdata.png" not in self.command:
+                ping_json = self.fetch_json_data(self.url_ping_entries)
+                if not ping_json or self.is_old_data(ping_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
-                elif current_entries_json != self.json_entries_data:
+                elif ping_json.get("_id") != self.newer_id:
                     logging.info("New glucose data detected, updating display.")
-                    self.json_entries_data = current_entries_json
+                    self.json_entries_data = self.fetch_json_data(self.url_entries)
+                    self.newer_id = ping_json.get("_id")
                     self.update_glucose_command()
                     self.run_command()
+                time.sleep(5)
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
                 time.sleep(60)
-                
+
     def reset_formmated_jsons(self):
         self.formmated_entries_json = []
         self.formmated_treatments_json = []
@@ -124,22 +127,21 @@ class GlucoseMatrixDisplay:
                 response.raise_for_status()
                 logging.info("Glucose data fetched successfully.")
                 return response.json()
-            
+
             except RemoteDisconnected as e:
                 logging.error(f"Remote end closed connection on attempt {attempt + 1}: {e}")
                 self.update_glucose_command("./images/no_wifi.png")
                 self.run_command()
-            
+
             except requests.exceptions.ConnectionError as e:
                 logging.error(f"Connection error on attempt {attempt + 1}: {e}")
-            
+
             except requests.exceptions.Timeout as e:
                 logging.error(f"Request timed out on attempt {attempt + 1}: {e}")
-            
-            
+
             except requests.exceptions.RequestException as e:
                 logging.error(f"Error fetching data on attempt {attempt + 1}: {e}")
-            
+
             # Handle retries and delays
             attempt += 1
             if attempt < retries:
@@ -171,19 +173,16 @@ class GlucoseMatrixDisplay:
         self.set_glucose_difference()
         self.set_arrow()
         treatments = self.get_treatment_x_values()
-        
+
         time_diff = self.calculate_time_difference()
         print(f"time difference: {time_diff}")
 
-        self.main_color = None
         pixels = self.display_glucose_on_matrix(self.first_value)
 
         for idx, entry in enumerate(self.formmated_entries_json[:self.matrix_size]):
-            self.main_color = self.determine_color(entry.glucose, entry_type=entry.type)
-
             x = self.matrix_size - idx - 1
             y = self.glucose_to_y_coordinate(entry.glucose)
-            r, g, b = self.main_color
+            r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
             pixels.append([x, y, r, g, b])
 
         y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
@@ -191,14 +190,14 @@ class GlucoseMatrixDisplay:
 
         pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
-        
+
         for treatment in treatments:
             pixels.extend(self.draw_vertical_line(treatment[0],
                                                   self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.3),
                                                   pixels,
                                                   y_high,
                                                   treatment[1]))
-            
+
         self.reset_formmated_jsons()
         return pixels
 
@@ -257,7 +256,7 @@ class GlucoseMatrixDisplay:
         surrounding_pixels = []
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
-                if dx == 0 and dy == 0:  # Skip the center pixel
+                if dx == 0 and dy == 0:
                     continue
                 new_x = x + dx
                 new_y = y + dy
@@ -267,7 +266,7 @@ class GlucoseMatrixDisplay:
                         already_paintted = True
                         break
                 if 0 <= new_x < self.matrix_size and 5 <= new_y < self.matrix_size and not already_paintted:
-                    surrounding_pixels.append([new_x, new_y, *self.fade_color(color, .2)])  # Apply fade effect
+                    surrounding_pixels.append([new_x, new_y, *self.fade_color(color, .2)])
         return surrounding_pixels
 
     def determine_color(self, glucose, entry_type="sgv"):
@@ -371,7 +370,7 @@ class GlucoseMatrixDisplay:
                     break
             if not already_paintted: pixels.append([x, y, *color])
         return pixels
-    
+
     def draw_vertical_line(self, x, color, old_pixels, low_y, height):
         pixels = []
         for y in list(range(low_y, low_y + height + 1)):
@@ -420,19 +419,19 @@ class GlucoseMatrixDisplay:
         start_x = (self.matrix_size - total_width) // 2
         y_position = (self.matrix_size - digit_height) // 2 - 13
 
-        position_x = start_x
+        x_position = start_x
         for digit in glucose_str:
-            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (position_x, y_position))
-            position_x += digit_width + spacing
+            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (x_position, y_position))
+            x_position += digit_width + spacing
 
-        self.draw_pattern(color, matrix, arrow_pattern, (position_x, y_position))
-        position_x += arrow_width
-        self.draw_pattern(color, matrix, self.signal_patterns()[self.get_glucose_difference_signal()], (position_x, y_position))
-        position_x += signal_width
+        self.draw_pattern(color, matrix, arrow_pattern, (x_position, y_position))
+        x_position += arrow_width
+        self.draw_pattern(color, matrix, self.signal_patterns()[self.get_glucose_difference_signal()], (x_position, y_position))
+        x_position += signal_width
 
         for digit in glucose_diff_str:
-            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (position_x, y_position))
-            position_x += digit_width + spacing
+            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (x_position, y_position))
+            x_position += digit_width + spacing
 
         return self.matrix_to_pixel_list(matrix)
 
@@ -447,10 +446,10 @@ class GlucoseMatrixDisplay:
         time_difference_sec = time_difference_ms / 1000
         minutes = int(time_difference_sec // 60)
         seconds = int(time_difference_sec % 60)
-        
-        logging.info(f"The data is {minutes} minutes and {seconds} seconds old.")
+
+        logging.info(f"The data is {minutes}:{seconds} old.")
         return time_difference_ms > self.max_time
-    
+
     def fade_color(self, color, percentil):
         fadded_color = []
         for item in color:
@@ -484,24 +483,24 @@ class GlucoseMatrixDisplay:
 
     def get_treatment_x_values(self):
         treatment_x_values = []
-        
+
         if not self.formmated_entries_json:
             logging.warning("No glucose entries available.")
             return treatment_x_values
-            
+
         first_entry_time = self.formmated_entries_json[0].dateString
         last_entry_time = self.formmated_entries_json[-1].dateString
-        
+
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
             if treatment.date > first_entry_time or treatment.date < last_entry_time:
                 continue
-            
+
             # Find the closest glucose entry to this treatment
             closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
             x_value = self.formmated_entries_json.index(closest_entry)
             treatment_x_values.append((self.matrix_size - x_value - 1, treatment.amount, treatment.type))  # x-value and treatment amount for height
-        
+
         return treatment_x_values
 class Color:
     red = [255, 20, 10]
