@@ -1,8 +1,8 @@
 {
-    "ip": "E9:BA:C7:6F:AB:41",
-    "base url": "https://glucose.fly.dev",
-    "night_brightness": 0.3,
+    "ip": "",
+    "base url": "",
+    "night_brightness": 0.1,
     "low bondary glucose": 70,
     "high bondary glucose": 160,
-    "os": "windows"
+    "os": ""
 }
