@@ -243,13 +243,14 @@ class GlucoseMatrixDisplay:
     def generate_list_from_treatments_json(self):
         for item in self.json_treatments_data:
             print(item)
+            time = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("eventType") == "Carbs":
                 self.formmated_treatments_json.append(TreatmentItem("Carbs",
-                                                  item.get("created_at"),
+                                                  time,
                                                   item.get("carbs")))
             elif item.get("eventType") == "Bolus":
                 self.formmated_treatments_json.append(TreatmentItem("Bolus",
-                                                  item.get("created_at"),
+                                                  time,
                                                   item.get("insulin")))
 
     def paint_around_value(self, x, y, color, painted_pixels):
@@ -447,7 +448,7 @@ class GlucoseMatrixDisplay:
         minutes = int(time_difference_sec // 60)
         seconds = int(time_difference_sec % 60)
 
-        logging.info(f"The data is {minutes:.2f}:{seconds:.2f} old.")
+        logging.info(f"The data is {minutes:02d}:{seconds:02d} old.")
         return time_difference_ms > self.max_time
 
     def fade_color(self, color, percentil):
@@ -534,7 +535,7 @@ class GlucoseItem:
 class TreatmentItem:
     def __init__(self, type, dateString, amount):
         self.type = type
-        self.date = datetime.datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%S.%fZ")
+        self.date = dateString
         self.amount = int(amount)
 
 if __name__ == "__main__":
