@@ -254,7 +254,8 @@ class GlucoseMatrixDisplay:
                                                   time,
                                                   item.get("insulin")))
             elif item.get("eventType") == "Exercise":
-                self.formmated_treatments_json.append(ExerciseItem(time,
+                self.formmated_treatments_json.append(ExerciseItem("Exercise",
+                                                  time,
                                                   item.get("duration")))
 
     def paint_around_value(self, x, y, color, painted_pixels):
