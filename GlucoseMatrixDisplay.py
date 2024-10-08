@@ -33,6 +33,7 @@ class GlucoseMatrixDisplay:
         self.second_value = 0
         self.formmated_entries_json = []
         self.formmated_treatments_json = []
+        self.today_bolus = 0
         self.newer_id = None
         self.unblock_bluetooth()
         self.update_glucose_command()
@@ -118,6 +119,7 @@ class GlucoseMatrixDisplay:
     def reset_formmated_jsons(self):
         self.formmated_entries_json = []
         self.formmated_treatments_json = []
+        self.today_bolus = 0
 
     def fetch_json_data(self, url, retries=5, delay=60, fallback_delay=300):
         attempt = 0
@@ -196,8 +198,8 @@ class GlucoseMatrixDisplay:
                                                   y_high,
                                                   treatment[1]))
 
-        print(f"today bolus: {self.get_todays_bolus()}")
-
+        self.today_bolus = self.get_todays_bolus()
+        
         self.reset_formmated_jsons()
         return pixels
 
