@@ -473,7 +473,8 @@ class TreatmentItem:
         self.amount = int(amount)
 
 class ExerciseItem:
-    def __init__(self, dateString, amount):
+    def __init__(self, type, dateString, amount):
+        self.type = type
         self.date = dateString
         self.amount = int(amount)
 
