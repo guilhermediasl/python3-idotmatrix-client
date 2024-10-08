@@ -104,6 +104,7 @@ class GlucoseMatrixDisplay:
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
                 elif ping_json.get("_id") != self.newer_id:
+                    print("today bolus: " + self.get_todays_bolus)
                     logging.info("New glucose data detected, updating display.")
                     self.json_entries_data = self.fetch_json_data(self.url_entries)
                     self.newer_id = ping_json.get("_id")
@@ -241,18 +242,16 @@ class GlucoseMatrixDisplay:
 
     def generate_list_from_treatments_json(self):
         for item in self.json_treatments_data:
-            treatment_date = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("eventType") == "Carbs":
                 self.formmated_treatments_json.append(TreatmentItem("Carbs",
-                                                  treatment_date,
+                                                  item.get("created_at"),
                                                   item.get("carbs")))
             elif item.get("eventType") == "Bolus":
                 self.formmated_treatments_json.append(TreatmentItem("Bolus",
-                                                  treatment_date,
+                                                  item.get("created_at"),
                                                   item.get("insulin")))
 
     def paint_around_value(self, x, y, color, painted_pixels):
-        """Paint the pixels around the given (x, y) coordinate."""
         surrounding_pixels = []
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
@@ -481,6 +480,19 @@ class GlucoseMatrixDisplay:
         else:
             return 1.0
 
+    def get_todays_bolus(self):
+        now = datetime.datetime.now()
+        total_bolus = 0
+        for item in self.formmated_treatments_json:
+            if item.type != "Bolus":
+                continue
+            if now.date() == item.date.date():
+                total_bolus += item.amount
+            else:
+                break
+
+        return total_bolus
+
     def get_treatment_x_values(self):
         treatment_x_values = []
 
@@ -521,8 +533,8 @@ class GlucoseItem:
 class TreatmentItem:
     def __init__(self, type, dateString, amount):
         self.type = type
-        self.date = dateString
-        self.amount = amount
+        self.date = datetime.datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%S.%fZ")
+        self.amount = int(amount)
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
