@@ -473,9 +473,9 @@ class TreatmentItem:
         self.amount = int(amount)
 
 class ExerciseItem:
-    def __init__(self, dateString, duration):
+    def __init__(self, dateString, amount):
         self.date = dateString
-        self.duration = int(duration)
+        self.amount = int(amount)
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
