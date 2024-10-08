@@ -8,6 +8,7 @@ import pytz
 import png
 import logging
 from http.client import RemoteDisconnected
+from patterns import digit_patterns, arrow_patterns, signal_patterns
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -242,7 +243,6 @@ class GlucoseMatrixDisplay:
 
     def generate_list_from_treatments_json(self):
         for item in self.json_treatments_data:
-            print(item)
             time = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("eventType") == "Carbs":
                 self.formmated_treatments_json.append(TreatmentItem("Carbs",
@@ -286,80 +286,6 @@ class GlucoseMatrixDisplay:
 
     def get_glucose_difference_signal(self):
         return '-' if self.glucose_difference < 0 else '+'
-
-    def digit_patterns(self):
-        return {
-            '0': np.array([[1, 1, 1], [1, 0, 1], [1, 0, 1], [1, 0, 1], [1, 1, 1]]),
-            '1': np.array([[0, 1, 0], [1, 1, 0], [0, 1, 0], [0, 1, 0], [1, 1, 1]]),
-            '2': np.array([[1, 1, 1], [0, 0, 1], [1, 1, 1], [1, 0, 0], [1, 1, 1]]),
-            '3': np.array([[1, 1, 1], [0, 0, 1], [1, 1, 1], [0, 0, 1], [1, 1, 1]]),
-            '4': np.array([[1, 0, 1], [1, 0, 1], [1, 1, 1], [0, 0, 1], [0, 0, 1]]),
-            '5': np.array([[1, 1, 1], [1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 1]]),
-            '6': np.array([[1, 1, 1], [1, 0, 0], [1, 1, 1], [1, 0, 1], [1, 1, 1]]),
-            '7': np.array([[1, 1, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]]),
-            '8': np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1], [1, 0, 1], [1, 1, 1]]),
-            '9': np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1], [0, 0, 1], [1, 1, 1]])
-        }
-
-    def arrow_patterns(self):
-        return {
-            'SingleUp': np.array([[0, 0, 1, 0, 0],
-                                  [0, 1, 1, 1, 0],
-                                  [1, 0, 1, 0, 1],
-                                  [0, 0, 1, 0, 0],
-                                  [0, 0, 1, 0, 0]]),
-
-            'DoubleUp': np.array([[0, 1, 0, 0, 1, 0],
-                                  [1, 1, 1, 1, 1, 1],
-                                  [0, 1, 0, 0, 1, 0],
-                                  [0, 1, 0, 0, 1, 0],
-                                  [0, 1, 0, 0, 1, 0]]),
-
-            'FortyFiveUp': np.array([[0, 1, 1, 1, 1],
-                                     [0, 0, 0, 1, 1],
-                                     [0, 0, 1, 0, 1],
-                                     [0, 1, 0, 0, 1],
-                                     [1, 0, 0, 0, 0]]),
-
-            'Flat': np.array([[0, 0, 1, 0, 0],
-                              [0, 0, 0, 1, 0],
-                              [1, 1, 1, 1, 1],
-                              [0, 0, 0, 1, 0],
-                              [0, 0, 1, 0, 0]]),
-
-            'FortyFiveDown': np.array([[1, 0, 0, 0, 0],
-                                       [0, 1, 0, 0, 0],
-                                       [0, 0, 1, 0, 1],
-                                       [0, 0, 0, 1, 1],
-                                       [0, 0, 1, 1, 1]]),
-
-            'DoubleDown': np.array([[0, 1, 0, 0, 1, 0],
-                                    [0, 1, 0, 0, 1, 0],
-                                    [0, 1, 0, 0, 1, 0],
-                                    [1, 1, 1, 1, 1, 1],
-                                    [0, 1, 0, 0, 1, 0]]),
-
-            'SingleDown': np.array([[0, 0, 1, 0, 0],
-                                    [0, 0, 1, 0, 0],
-                                    [1, 0, 1, 0, 1],
-                                    [0, 1, 1, 1, 0],
-                                    [0, 0, 1, 0, 0]])
-        }
-
-    def signal_patterns(self):
-        return {
-            '-': np.array([[0, 0, 0],
-                           [0, 0, 0],
-                           [1, 1, 1],
-                           [0, 0, 0],
-                           [0, 0, 0]]),
-
-            '+': np.array([[0, 0, 0],
-                           [0, 1, 0],
-                           [1, 1, 1],
-                           [0, 1, 0],
-                           [0, 0, 0]])
-        }
 
     def draw_horizontal_line(self, y, color, old_pixels, boarder_len):
         pixels = []
@@ -410,7 +336,7 @@ class GlucoseMatrixDisplay:
         digit_width, digit_height, spacing = 3, 5, 1
         digits_width = len(glucose_str) * (digit_width + spacing)
 
-        arrow_pattern = self.arrow_patterns().get(self.arrow, np.zeros((5, 5)))
+        arrow_pattern = arrow_patterns().get(self.arrow, np.zeros((5, 5)))
         arrow_width = arrow_pattern.shape[1] + spacing
         signal_width = 3 + spacing
 
@@ -422,16 +348,16 @@ class GlucoseMatrixDisplay:
 
         x_position = start_x
         for digit in glucose_str:
-            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (x_position, y_position))
+            self.draw_pattern(color, matrix, digit_patterns()[digit], (x_position, y_position))
             x_position += digit_width + spacing
 
         self.draw_pattern(color, matrix, arrow_pattern, (x_position, y_position))
         x_position += arrow_width
-        self.draw_pattern(color, matrix, self.signal_patterns()[self.get_glucose_difference_signal()], (x_position, y_position))
+        self.draw_pattern(color, matrix, signal_patterns()[self.get_glucose_difference_signal()], (x_position, y_position))
         x_position += signal_width
 
         for digit in glucose_diff_str:
-            self.draw_pattern(color, matrix, self.digit_patterns()[digit], (x_position, y_position))
+            self.draw_pattern(color, matrix, digit_patterns()[digit], (x_position, y_position))
             x_position += digit_width + spacing
 
         return self.matrix_to_pixel_list(matrix)
@@ -480,8 +406,7 @@ class GlucoseMatrixDisplay:
         local_tz = pytz.timezone(timezone_str)
         current_time = datetime.datetime.now(local_tz)
         current_hour = current_time.hour
-        logging.info(f"Current time in {timezone_str}: {current_time}")
-        
+
         if 21 <= current_hour or current_hour < 6:
             return self.night_brightness
         else:
