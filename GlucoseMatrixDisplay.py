@@ -437,10 +437,10 @@ class GlucoseMatrixDisplay:
         return self.matrix_to_pixel_list(matrix)
 
     def is_old_data(self, json):
-        created_at_str = json.get('created_at')
+        created_at_str = json[0].get('sysTime')
         
         if created_at_str is None:
-            raise ValueError("No 'created_at' timestamp found in the JSON data.")
+            raise ValueError("No 'sysTime' timestamp found in the JSON data.")
         
         created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
 
