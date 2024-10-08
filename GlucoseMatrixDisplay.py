@@ -109,7 +109,6 @@ class GlucoseMatrixDisplay:
                     self.json_entries_data = self.fetch_json_data(self.url_entries)
                     self.newer_id = ping_json.get("_id")
                     self.update_glucose_command()
-                    print(f"today bolus: {self.get_todays_bolus()}")
                     self.run_command()
                 time.sleep(5)
             except Exception as e:
@@ -196,6 +195,8 @@ class GlucoseMatrixDisplay:
                                                   pixels,
                                                   y_high,
                                                   treatment[1]))
+
+        print(f"today bolus: {self.get_todays_bolus()}")
 
         self.reset_formmated_jsons()
         return pixels
