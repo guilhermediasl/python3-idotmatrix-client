@@ -442,7 +442,7 @@ class GlucoseMatrixDisplay:
         if created_at_str is None:
             raise ValueError("No 'sysTime' timestamp found in the JSON data.")
         
-        created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+        created_at = datetime.datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
 
         current_time = datetime.datetime.now(datetime.timezone.utc)
 
