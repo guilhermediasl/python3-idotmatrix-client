@@ -98,7 +98,7 @@ class GlucoseMatrixDisplay:
         self.run_command()
         while True:
             try:
-                ping_json = self.fetch_json_data(self.url_ping_entries)[0]
+                ping_json = self.fetch_json_data(self.url_ping_entries)
                 if not ping_json or self.is_old_data(ping_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
@@ -437,18 +437,23 @@ class GlucoseMatrixDisplay:
         return self.matrix_to_pixel_list(matrix)
 
     def is_old_data(self, json):
-        current_time_ms = int(datetime.datetime.now().timestamp() * 1000)
-        first_timestamp_ms = next((item.get("mills") for item in json if item.get("mills") is not None), None)
+        created_at_str = json.get('created_at')
+        
+        if created_at_str is None:
+            raise ValueError("No 'created_at' timestamp found in the JSON data.")
+        
+        created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
 
-        if first_timestamp_ms is None:
-            raise ValueError("No 'mills' timestamp found in the JSON data.")
+        current_time = datetime.datetime.now(datetime.timezone.utc)
 
-        time_difference_ms = current_time_ms - first_timestamp_ms
+        time_difference_ms = (current_time - created_at).total_seconds() * 1000
+
         time_difference_sec = time_difference_ms / 1000
         minutes = int(time_difference_sec // 60)
         seconds = int(time_difference_sec % 60)
 
         logging.info(f"The data is {minutes:02d}:{seconds:02d} old.")
+        
         return time_difference_ms > self.max_time
 
     def fade_color(self, color, percentil):
