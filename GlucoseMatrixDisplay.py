@@ -175,6 +175,8 @@ class GlucoseMatrixDisplay:
         self.extract_first_and_second_value()
         self.set_glucose_difference()
         self.set_arrow()
+        self.y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
+        self.y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
         treatments = self.get_treatment_x_values()
 
         pixels = self.display_glucose_on_matrix(self.first_value)
@@ -185,8 +187,6 @@ class GlucoseMatrixDisplay:
             r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
             pixels.append([x, y, r, g, b])
 
-        self.y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
-        self.y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
 
         pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
         pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
