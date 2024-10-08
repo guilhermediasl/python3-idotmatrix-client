@@ -105,11 +105,11 @@ class GlucoseMatrixDisplay:
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
                 elif ping_json.get("_id") != self.newer_id:
-                    print(f"today bolus: {self.get_todays_bolus()}")
                     logging.info("New glucose data detected, updating display.")
                     self.json_entries_data = self.fetch_json_data(self.url_entries)
                     self.newer_id = ping_json.get("_id")
                     self.update_glucose_command()
+                    print(f"today bolus: {self.get_todays_bolus()}")
                     self.run_command()
                 time.sleep(5)
             except Exception as e:
@@ -175,9 +175,6 @@ class GlucoseMatrixDisplay:
         self.set_glucose_difference()
         self.set_arrow()
         treatments = self.get_treatment_x_values()
-
-        time_diff = self.calculate_time_difference()
-        print(f"time difference: {time_diff}")
 
         pixels = self.display_glucose_on_matrix(self.first_value)
 
