@@ -185,17 +185,17 @@ class GlucoseMatrixDisplay:
             r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
             pixels.append([x, y, r, g, b])
 
-        y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
-        y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
+        self.y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
+        self.y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
 
-        pixels.extend(self.draw_horizontal_line(y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
-        pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
+        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
+        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
 
         for treatment in treatments:
             pixels.extend(self.draw_vertical_line(treatment[0],
                                                   self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.3),
                                                   pixels,
-                                                  y_high,
+                                                  self.y_high,
                                                   treatment[1]))
 
         self.today_bolus = self.get_todays_bolus()
@@ -449,7 +449,9 @@ class GlucoseMatrixDisplay:
             # Find the closest glucose entry to this treatment
             closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
             x_value = self.formmated_entries_json.index(closest_entry)
-            treatment_x_values.append((self.matrix_size - x_value - 1, treatment.amount, treatment.type))  # x-value and treatment amount for height
+            treatment_x_values.append((self.matrix_size - x_value - 1,
+                                       max(treatment.amount, self.y_high - self.y_low),
+                                       treatment.type))  # x-value and treatment amount for height
 
         return treatment_x_values
 class Color:
