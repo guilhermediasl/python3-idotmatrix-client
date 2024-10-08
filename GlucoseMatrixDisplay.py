@@ -104,7 +104,7 @@ class GlucoseMatrixDisplay:
                     self.update_glucose_command("./images/nocgmdata.png")
                     self.run_command()
                 elif ping_json.get("_id") != self.newer_id:
-                    print("today bolus: " + self.get_todays_bolus())
+                    print(f"today bolus: {self.get_todays_bolus()}")
                     logging.info("New glucose data detected, updating display.")
                     self.json_entries_data = self.fetch_json_data(self.url_entries)
                     self.newer_id = ping_json.get("_id")
