@@ -242,6 +242,7 @@ class GlucoseMatrixDisplay:
 
     def generate_list_from_treatments_json(self):
         for item in self.json_treatments_data:
+            print(item)
             if item.get("eventType") == "Carbs":
                 self.formmated_treatments_json.append(TreatmentItem("Carbs",
                                                   item.get("created_at"),
