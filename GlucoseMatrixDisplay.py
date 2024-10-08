@@ -450,7 +450,7 @@ class GlucoseMatrixDisplay:
             closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
             x_value = self.formmated_entries_json.index(closest_entry)
             treatment_x_values.append((self.matrix_size - x_value - 1,
-                                       min(treatment.amount, self.y_high - self.y_low),
+                                       min(treatment.amount, self.y_low - self.y_high),
                                        treatment.type))  # x-value and treatment amount for height
 
         return treatment_x_values
