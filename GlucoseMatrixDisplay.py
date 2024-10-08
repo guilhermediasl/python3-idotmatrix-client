@@ -97,7 +97,6 @@ class GlucoseMatrixDisplay:
 
     def run_command_in_loop(self):
         logging.info("Starting command loop.")
-        self.run_command()
         while True:
             try:
                 ping_json = self.fetch_json_data(self.url_ping_entries)[0]
@@ -192,6 +191,8 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
 
         for treatment in treatments:
+            if treatment[2] not in ("Bolus","Carbs"):
+                continue
             pixels.extend(self.draw_vertical_line(treatment[0],
                                                   self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.3),
                                                   pixels,
@@ -252,6 +253,9 @@ class GlucoseMatrixDisplay:
                 self.formmated_treatments_json.append(TreatmentItem("Bolus",
                                                   time,
                                                   item.get("insulin")))
+            elif item.get("eventType") == "Exercise":
+                self.formmated_treatments_json.append(ExerciseItem(time,
+                                                  item.get("duration")))
 
     def paint_around_value(self, x, y, color, painted_pixels):
         surrounding_pixels = []
@@ -467,6 +471,11 @@ class TreatmentItem:
         self.type = type
         self.date = dateString
         self.amount = int(amount)
+
+class ExerciseItem:
+    def __init__(self, dateString, duration):
+        self.date = dateString
+        self.duration = int(duration)
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
