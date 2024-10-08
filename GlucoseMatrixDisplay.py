@@ -192,8 +192,6 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
 
         for treatment in treatments:
-            if treatment[2] not in ("Bolus","Carbs"):
-                continue
             pixels.extend(self.draw_vertical_line(treatment[0],
                                                   self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.3),
                                                   pixels,
@@ -443,6 +441,8 @@ class GlucoseMatrixDisplay:
 
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
+            if treatment[2] not in ("Bolus","Carbs"):
+                continue
             if treatment.date > first_entry_time or treatment.date < last_entry_time:
                 continue
 
