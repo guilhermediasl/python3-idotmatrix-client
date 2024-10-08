@@ -98,7 +98,7 @@ class GlucoseMatrixDisplay:
         self.run_command()
         while True:
             try:
-                ping_json = self.fetch_json_data(self.url_ping_entries)
+                ping_json = self.fetch_json_data(self.url_ping_entries)[0]
                 if not ping_json or self.is_old_data(ping_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
