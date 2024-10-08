@@ -447,7 +447,7 @@ class GlucoseMatrixDisplay:
         minutes = int(time_difference_sec // 60)
         seconds = int(time_difference_sec % 60)
 
-        logging.info(f"The data is {minutes}:{seconds} old.")
+        logging.info(f"The data is {minutes:.2f}:{seconds:.2f} old.")
         return time_difference_ms > self.max_time
 
     def fade_color(self, color, percentil):
