@@ -441,7 +441,7 @@ class GlucoseMatrixDisplay:
 
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
-            if treatment[2] not in ("Bolus","Carbs"):
+            if treatment.type not in ("Bolus","Carbs"):
                 continue
             if treatment.date > first_entry_time or treatment.date < last_entry_time:
                 continue
