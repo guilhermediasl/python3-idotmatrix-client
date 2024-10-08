@@ -108,9 +108,9 @@ class GlucoseMatrixDisplay:
                 elif ping_json.get("_id") != self.newer_id:
                     logging.info("New glucose data detected, updating display.")
                     self.json_entries_data = self.fetch_json_data(self.url_entries)
-                    self.newer_id = ping_json.get("_id")
                     self.update_glucose_command()
                     self.run_command()
+                self.newer_id = ping_json.get("_id")
                 time.sleep(5)
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
