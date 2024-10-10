@@ -188,7 +188,8 @@ class GlucoseMatrixDisplay:
             r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
             pixels.append([x, y, r, g, b])
 
-
+        upper_layer = pixels.copy()
+        
         pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
         pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
 
@@ -202,7 +203,7 @@ class GlucoseMatrixDisplay:
             elif treatment[2] == "Exercise":
                 pixels.extend(self.draw_horizontal_line(self.y_high,
                                                         self.fade_color(Color.purple,0.5),
-                                                        pixels,
+                                                        upper_layer,
                                                         treatment[0],
                                                         min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
                                                         ))
