@@ -207,6 +207,12 @@ class GlucoseMatrixDisplay:
                                                         treatment[0],
                                                         min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
                                                         ))
+                pixels.extend(self.draw_horizontal_line(self.y_low,
+                                                        self.fade_color(Color.purple,0.5),
+                                                        upper_layer,
+                                                        treatment[0],
+                                                        min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
+                                                        ))
 
         self.today_bolus = self.get_todays_bolus()
         
