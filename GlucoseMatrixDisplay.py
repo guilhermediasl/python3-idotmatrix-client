@@ -189,15 +189,23 @@ class GlucoseMatrixDisplay:
             pixels.append([x, y, r, g, b])
 
 
-        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
-        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, self.matrix_size))
+        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size))
+        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size))
 
         for treatment in treatments:
-            pixels.extend(self.draw_vertical_line(treatment[0],
-                                                  self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.3),
-                                                  pixels,
-                                                  self.y_high,
-                                                  treatment[1]))
+            if treatment[2] in ("Bolus","Carbs"):
+                pixels.extend(self.draw_vertical_line(treatment[0],
+                                                    self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.3),
+                                                    pixels,
+                                                    self.y_high,
+                                                    treatment[1]))
+            elif treatment.type == "Exercise":
+                pixels.extend(self.draw_horizontal_line(self.y_high,
+                                                        self.fade_color(Color.purple,0.5),
+                                                        pixels,
+                                                        treatment[0],
+                                                        min(treatment[0] + int(treatment[1]/5), self.matrix_size)
+                                                        ))
 
         self.today_bolus = self.get_todays_bolus()
         
@@ -248,15 +256,15 @@ class GlucoseMatrixDisplay:
             if item.get("eventType") == "Carbs":
                 self.formmated_treatments_json.append(TreatmentItem("Carbs",
                                                   time,
-                                                  item.get("carbs")))
+                                                  int(item.get("carbs"))))
             elif item.get("eventType") == "Bolus":
                 self.formmated_treatments_json.append(TreatmentItem("Bolus",
                                                   time,
-                                                  item.get("insulin")))
+                                                  int(item.get("insulin"))))
             elif item.get("eventType") == "Exercise":
                 self.formmated_treatments_json.append(ExerciseItem("Exercise",
                                                   time,
-                                                  item.get("duration")))
+                                                  int(item.get("duration"))))
 
     def paint_around_value(self, x, y, color, painted_pixels):
         surrounding_pixels = []
@@ -292,15 +300,16 @@ class GlucoseMatrixDisplay:
     def get_glucose_difference_signal(self):
         return '-' if self.glucose_difference < 0 else '+'
 
-    def draw_horizontal_line(self, y, color, old_pixels, boarder_len):
+    def draw_horizontal_line(self, y, color, old_pixels, first_pixel, last_pixel):
         pixels = []
-        for x in list(range(boarder_len)) + list(range(self.matrix_size - boarder_len, self.matrix_size)):
+        for x in range(first_pixel, last_pixel + 1):
             already_paintted = False
-            for x_old,y_old,_,_,_ in old_pixels:
+            for x_old, y_old, _, _, _ in old_pixels:
                 if x_old == x and y_old == y:
                     already_paintted = True
                     break
-            if not already_paintted: pixels.append([x, y, *color])
+            if not already_paintted:
+                pixels.append([x, y, *color])
         return pixels
 
     def draw_vertical_line(self, x, color, old_pixels, low_y, height):
@@ -442,19 +451,25 @@ class GlucoseMatrixDisplay:
 
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
-            if treatment.type not in ("Bolus","Carbs"):
-                continue
             if treatment.date > first_entry_time or treatment.date < last_entry_time:
                 continue
 
             # Find the closest glucose entry to this treatment
-            closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
-            x_value = self.formmated_entries_json.index(closest_entry)
-            treatment_x_values.append((self.matrix_size - x_value - 1,
-                                       min(treatment.amount, self.y_low - self.y_high),
-                                       treatment.type))  # x-value and treatment amount for height
+            if treatment.type in ("Bolus","Carbs"):
+                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
+                x_value = self.formmated_entries_json.index(closest_entry)
+                treatment_x_values.append((self.matrix_size - x_value - 1,
+                                        min(treatment.amount, self.y_low - self.y_high),
+                                        treatment.type))  # x-value and treatment amount for height
+            elif treatment.type == "Exercise":
+                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
+                x_value = self.formmated_entries_json.index(closest_entry)
+                treatment_x_values.append((self.matrix_size - x_value - 1,
+                                        treatment.amount,
+                                        treatment.type))  # x-value and treatment amount for height
 
         return treatment_x_values
+
 class Color:
     red = [255, 20, 10]
     green = [70, 167, 10]
