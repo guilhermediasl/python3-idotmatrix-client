@@ -1,6 +1,7 @@
 {
     "ip": "",
     "base url": "",
+    "token": "",
     "night_brightness": 0.1,
     "low bondary glucose": 70,
     "high bondary glucose": 160,

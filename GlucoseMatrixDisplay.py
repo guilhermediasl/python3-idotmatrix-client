@@ -20,9 +20,10 @@ class GlucoseMatrixDisplay:
         self.max_time = 1200000 #milliseconds
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
-        self.url_entries = f"{self.config.get('url')}/entries.json?count=40"
-        self.url_treatments = f"{self.config.get('url')}/treatments.json?count=40"
-        self.url_ping_entries = f"{self.config.get('url')}/entries.json?count=1"
+        token = self.config.get('token')
+        self.url_entries = f"{self.config.get('url')}/entries.json?token={token}?count=40"
+        self.url_treatments = f"{self.config.get('url')}/treatments.json?token={token}?count=40"
+        self.url_ping_entries = f"{self.config.get('url')}/entries.json?token={token}?count=1"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
@@ -108,9 +109,9 @@ class GlucoseMatrixDisplay:
                 elif ping_json.get("_id") != self.newer_id:
                     logging.info("New glucose data detected, updating display.")
                     self.json_entries_data = self.fetch_json_data(self.url_entries)
-                    self.newer_id = ping_json.get("_id")
                     self.update_glucose_command()
                     self.run_command()
+                    self.newer_id = ping_json.get("_id")
                 time.sleep(5)
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
@@ -368,10 +369,10 @@ class GlucoseMatrixDisplay:
 
     def is_old_data(self, json):
         created_at_str = json.get('sysTime')
-        
+
         if created_at_str is None:
             raise ValueError("No 'sysTime' timestamp found in the JSON data.")
-        
+
         created_at = datetime.datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
 
         current_time = datetime.datetime.now(datetime.timezone.utc)
