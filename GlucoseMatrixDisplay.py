@@ -199,12 +199,12 @@ class GlucoseMatrixDisplay:
                                                     pixels,
                                                     self.y_high,
                                                     treatment[1]))
-            elif treatment.type == "Exercise":
+            elif treatment[2] == "Exercise":
                 pixels.extend(self.draw_horizontal_line(self.y_high,
                                                         self.fade_color(Color.purple,0.5),
                                                         pixels,
                                                         treatment[0],
-                                                        min(treatment[0] + int(treatment[1]/5), self.matrix_size)
+                                                        min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
                                                         ))
 
         self.today_bolus = self.get_todays_bolus()
