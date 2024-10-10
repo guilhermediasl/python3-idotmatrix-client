@@ -21,9 +21,9 @@ class GlucoseMatrixDisplay:
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
         token = self.config.get('token')
-        self.url_entries = f"{self.config.get('url')}/entries.json?token={token}?count=40"
-        self.url_treatments = f"{self.config.get('url')}/treatments.json?token={token}?count=40"
-        self.url_ping_entries = f"{self.config.get('url')}/entries.json?token={token}?count=1"
+        self.url_entries = f"{self.config.get('url')}/entries.json?token={token}&count=40"
+        self.url_treatments = f"{self.config.get('url')}/treatments.json?token={token}&count=40"
+        self.url_ping_entries = f"{self.config.get('url')}/entries.json?token={token}&count=1"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
