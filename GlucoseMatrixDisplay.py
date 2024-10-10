@@ -189,8 +189,8 @@ class GlucoseMatrixDisplay:
             pixels.append([x, y, r, g, b])
 
 
-        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size))
-        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size))
+        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
+        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
 
         for treatment in treatments:
             if treatment[2] in ("Bolus","Carbs"):
