@@ -467,7 +467,7 @@ class GlucoseMatrixDisplay:
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
             if treatment.type == "Exercise":
-                if treatment.date > first_entry_time or treatment.date < last_entry_time + int(treatment.amount / 5):
+                if treatment.date > first_entry_time or treatment.date < last_entry_time + datetime.timedelta(seconds=int(treatment.amount / 5)):
                     continue
             else:
                 if treatment.date > first_entry_time or treatment.date < last_entry_time:
