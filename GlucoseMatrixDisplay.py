@@ -87,14 +87,16 @@ class GlucoseMatrixDisplay:
 
     def run_command(self):
         logging.info(f"Running command: {self.command}")
-        try:
-            result = subprocess.run(self.command, shell=True, check=True)
-            if result.returncode != 0:
-                logging.error("Command failed.")
-            else:
-                logging.info(f"Command executed successfully, with last glucose: {self.first_value}")
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Command failed with error: {e}")
+        for _ in range(1,5):
+            try:
+                result = subprocess.run(self.command, shell=True, check=True)
+                if result.returncode != 0:
+                    logging.error("Command failed.")
+                else:
+                    logging.info(f"Command executed successfully, with last glucose: {self.first_value}")
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Command failed with error: {e}")
+                time.sleep(2)
 
     def run_command_in_loop(self):
         logging.info("Starting command loop.")
@@ -497,7 +499,7 @@ class Color:
     purple = [250, 0, 105]
     white = [230, 170, 80]
     blue = [20, 150, 135]
-    orange = [255, 90, 0]
+    orange = [255, 70, 0]
 
 class GlucoseItem:
     def __init__(self, type: str, glucose: int, dateString, direction : str = None):
