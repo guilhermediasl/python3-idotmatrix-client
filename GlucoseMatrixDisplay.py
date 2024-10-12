@@ -94,6 +94,7 @@ class GlucoseMatrixDisplay:
                     logging.error("Command failed.")
                 else:
                     logging.info(f"Command executed successfully, with last glucose: {self.first_value}")
+                    break
             except subprocess.CalledProcessError as e:
                 logging.error(f"Command failed with error: {e}")
                 time.sleep(2)
@@ -499,7 +500,7 @@ class Color:
     purple = [250, 0, 105]
     white = [230, 170, 80]
     blue = [20, 150, 135]
-    orange = [255, 70, 0]
+    orange = [255, 120, 0]
 
 class GlucoseItem:
     def __init__(self, type: str, glucose: int, dateString, direction : str = None):
