@@ -346,7 +346,7 @@ class GlucoseMatrixDisplay:
                         matrix[x, y] = color
 
     def is_five_apart(self, init, current):
-        return (current - init + 1) % 5 == 0
+        return (current - init) % 5 == 0
 
     def matrix_to_pixel_list(self, matrix):
         pixel_list = []
