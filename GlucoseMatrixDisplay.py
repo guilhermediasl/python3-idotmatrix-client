@@ -330,9 +330,10 @@ class GlucoseMatrixDisplay:
                 if x_old == x and y_old == y:
                     already_paintted = True
                     break
+            temp_color = color
             if not self.is_five_apart(low_y, y):
-                color = self.fade_color(color, 0.8)
-            if not already_paintted: pixels.append([ x, y, *color])
+                temp_color = self.fade_color(color, 0.8)
+            if not already_paintted: pixels.append([ x, y, *temp_color])
         return pixels
 
     def draw_pattern(self, color, matrix, pattern, position, scale=1):
