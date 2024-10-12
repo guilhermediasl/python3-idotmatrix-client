@@ -330,6 +330,8 @@ class GlucoseMatrixDisplay:
                 if x_old == x and y_old == y:
                     already_paintted = True
                     break
+            if self.is_five_apart(low_y, y):
+                color = self.fade_color(color, 1.1)
             if not already_paintted: pixels.append([ x, y, *color])
         return pixels
 
@@ -341,6 +343,9 @@ class GlucoseMatrixDisplay:
                     x, y = start_x + j * scale, start_y + i * scale
                     if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
                         matrix[x, y] = color
+
+    def is_five_apart(self, init, current):
+        return (current - init + 1) % 5 == 0
 
     def matrix_to_pixel_list(self, matrix):
         pixel_list = []
@@ -461,8 +466,12 @@ class GlucoseMatrixDisplay:
 
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
-            if treatment.date > first_entry_time or treatment.date < last_entry_time:
-                continue
+            if treatment.type == "Exercise":
+                if treatment.date > first_entry_time or treatment.date < last_entry_time + int(treatment.amount / 5):
+                    continue
+            else:
+                if treatment.date > first_entry_time or treatment.date < last_entry_time:
+                    continue
 
             # Find the closest glucose entry to this treatment
             if treatment.type in ("Bolus","Carbs"):
