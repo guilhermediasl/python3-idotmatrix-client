@@ -122,7 +122,7 @@ class GlucoseMatrixDisplay:
         self.formmated_treatments_json = []
         self.today_bolus = 0
 
-    def fetch_json_data(self, url, retries=5, delay=60, fallback_delay=300):
+    def fetch_json_data(self, url, retries=5, delay=10, fallback_delay=300):
         attempt = 0
         while True:
             try:
@@ -204,18 +204,17 @@ class GlucoseMatrixDisplay:
                 pixels.extend(self.draw_horizontal_line(self.y_high,
                                                         self.fade_color(Color.purple,0.5),
                                                         upper_layer,
-                                                        treatment[0],
+                                                        max(treatment[0], 0),
                                                         min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
                                                         ))
                 pixels.extend(self.draw_horizontal_line(self.y_low,
                                                         self.fade_color(Color.purple,0.5),
                                                         upper_layer,
-                                                        treatment[0],
+                                                        max(treatment[0], 0),
                                                         min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
                                                         ))
 
         self.today_bolus = self.get_todays_bolus()
-        
         self.reset_formmated_jsons()
         return pixels
 
@@ -261,10 +260,14 @@ class GlucoseMatrixDisplay:
         for item in self.json_treatments_data:
             time = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
             if item.get("eventType") == "Carbs":
+                if not item.get("carbs"):
+                    continue
                 self.formmated_treatments_json.append(TreatmentItem("Carbs",
                                                   time,
                                                   int(item.get("carbs"))))
             elif item.get("eventType") == "Bolus":
+                if not item.get("insulin"):
+                    continue
                 self.formmated_treatments_json.append(TreatmentItem("Bolus",
                                                   time,
                                                   int(item.get("insulin"))))
