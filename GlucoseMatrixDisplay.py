@@ -332,7 +332,7 @@ class GlucoseMatrixDisplay:
                     break
             temp_color = color
             if not self.is_five_apart(low_y, y):
-                temp_color = self.fade_color(color, 0.8)
+                temp_color = self.fade_color(color, 0.5)
             if not already_paintted: pixels.append([ x, y, *temp_color])
         return pixels
 
