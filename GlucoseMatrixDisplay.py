@@ -276,7 +276,7 @@ class GlucoseMatrixDisplay:
                                                   int(item.get("insulin"))))
             elif item.get("eventType") == "Exercise":
                 if item.get('utcOffset'):
-                    time = time - int(item.get('utcOffset'))
+                    time = time - datetime.timedelta(item.get('utcOffset'))
                 if not item.get("duration"):
                     continue
                 self.formmated_treatments_json.append(ExerciseItem("Exercise",
