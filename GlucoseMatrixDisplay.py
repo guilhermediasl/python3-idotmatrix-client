@@ -574,6 +574,8 @@ class GlucoseMatrixDisplay:
         :param duration: Total insulin action duration in minutes.
         :return: The IOB contribution as a decimal factor (0 to 1).
         """
+        print(treatment_time)
+        print(current_time)
         minutes_since_treatment = (current_time - treatment_time).total_seconds() / 60
         if minutes_since_treatment < 0:
             return 0  # Treatment is in the future, no contribution yet
