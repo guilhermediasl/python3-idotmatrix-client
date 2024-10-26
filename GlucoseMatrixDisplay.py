@@ -7,10 +7,39 @@ import datetime
 import pytz
 import png
 import logging
+from typing import List, Tuple
 from http.client import RemoteDisconnected
 from patterns import digit_patterns, arrow_patterns, signal_patterns
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+class Color:
+    red = [255, 20, 10]
+    green = [70, 167, 10]
+    yellow = [244, 170, 0]
+    purple = [250, 0, 105]
+    white = [230, 170, 80]
+    blue = [20, 150, 135]
+    orange = [245, 70, 0]
+
+class GlucoseItem:
+    def __init__(self, type: str, glucose: int, dateString, direction : str = None):
+        self.type = type
+        self.glucose = glucose
+        self.dateString = dateString 
+        self.direction = direction
+
+class TreatmentItem:
+    def __init__(self, type: str, dateString: datetime.datetime, amount: int):
+        self.type: str = type
+        self.date: datetime.datetime = dateString
+        self.amount: int = int(amount)
+
+class ExerciseItem:
+    def __init__(self, type, dateString, amount):
+        self.type = type
+        self.date = dateString
+        self.amount = int(amount)
 
 class GlucoseMatrixDisplay:
     def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
@@ -34,6 +63,7 @@ class GlucoseMatrixDisplay:
         self.second_value = 0
         self.formmated_entries_json = []
         self.formmated_treatments_json = []
+        self.iob_time_list = []
         self.today_bolus = 0
         self.newer_id = None
         self.unblock_bluetooth()
@@ -182,6 +212,9 @@ class GlucoseMatrixDisplay:
         self.y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         self.y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
         treatments = self.get_treatment_x_values()
+        
+        self.iob_time_list = self.calculate_insulin_on_board(self.formmated_treatments_json)
+        print(self.iob_time_list)
 
         pixels = self.display_glucose_on_matrix(self.first_value)
 
@@ -497,33 +530,62 @@ class GlucoseMatrixDisplay:
 
         return treatment_x_values
 
-class Color:
-    red = [255, 20, 10]
-    green = [70, 167, 10]
-    yellow = [244, 170, 0]
-    purple = [250, 0, 105]
-    white = [230, 170, 80]
-    blue = [20, 150, 135]
-    orange = [245, 70, 0]
+    def calculate_insulin_on_board(self, treatments: List[TreatmentItem]) -> List[Tuple[datetime.datetime,int]]:
+        """
+        Calculate Insulin on Board (IOB) at 5-minute intervals until IOB approaches zero.
 
-class GlucoseItem:
-    def __init__(self, type: str, glucose: int, dateString, direction : str = None):
-        self.type = type
-        self.glucose = glucose
-        self.dateString = dateString 
-        self.direction = direction
+        :param treatments: List of treatments, each with 'insulin' amount and 'timestamp' in milliseconds.
+        :param current_time: The current time as a timestamp in milliseconds.
+        :return: List of tuples with timestamps and corresponding IOB values.
+        """
+        current_time = datetime.datetime.now()
+        five_min_interval = datetime.timedelta(minutes=5)
+        near_zero_threshold = 0.4  # IOB threshold to stop calculations
 
-class TreatmentItem:
-    def __init__(self, type, dateString, amount):
-        self.type = type
-        self.date = dateString
-        self.amount = int(amount)
+        iob_over_time = []
 
-class ExerciseItem:
-    def __init__(self, type, dateString, amount):
-        self.type = type
-        self.date = dateString
-        self.amount = int(amount)
+        # Calculate and store initial total IOB
+        total_iob = 0
+        for treatment in treatments:
+            if treatment.type == "Bolus":
+                total_iob += treatments.amount * self.get_iob_contribution(treatment.date,current_time)
+
+        # Append initial IOB value
+        while total_iob > near_zero_threshold:
+            iob_over_time.append((round(self.get_iob_contribution(current_time, total_iob)), current_time))
+
+            # Move forward by 5 minutes and recalculate total IOB
+            current_time += five_min_interval
+            total_iob = 0
+            for treatment in treatments:
+                if treatment.type == "Bolus":
+                    total_iob += treatments.amount * self.get_iob_contribution(treatment.date,current_time)
+
+        return iob_over_time
+
+    def get_iob_contribution(self, treatment_time: datetime.datetime, current_time: datetime.datetime, onset=15, peak=75, duration=300) -> float:
+        """
+        Calculate the IOB contribution from a single treatment at a given time.
+
+        :param treatment_time: Time of the insulin treatment as datetime.
+        :param current_time: Current time as a datetime object.
+        :param onset: Time in minutes until insulin starts acting.
+        :param peak: Time in minutes until insulin reaches peak effect.
+        :param duration: Total insulin action duration in minutes.
+        :return: The IOB contribution as a decimal factor (0 to 1).
+        """
+        minutes_since_treatment = (current_time - treatment_time).total_seconds() / 60
+        if minutes_since_treatment < 0:
+            return 0  # Treatment is in the future, no contribution yet
+        elif minutes_since_treatment < onset:
+            return 1  # Insulin has not started acting yet
+        elif minutes_since_treatment < peak:
+            return 1 - 0.001852 * ((minutes_since_treatment / 5) + 1)**2 + 0.001852 * (minutes_since_treatment / 5 + 1)
+        elif minutes_since_treatment < duration:
+            elapsed_post_peak = (minutes_since_treatment - peak) / 5
+            return 0.001323 * elapsed_post_peak**2 - 0.054233 * elapsed_post_peak + 0.55556
+        else:
+            return 0  # No contribution beyond duration
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
