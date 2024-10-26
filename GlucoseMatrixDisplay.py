@@ -552,7 +552,7 @@ class GlucoseMatrixDisplay:
 
         # Append initial IOB value
         while total_iob > near_zero_threshold:
-            iob_over_time.append((round(self.get_iob_contribution(current_time, total_iob)), current_time))
+            iob_over_time.append((round(total_iob), current_time))
 
             # Move forward by 5 minutes and recalculate total IOB
             current_time += five_min_interval
