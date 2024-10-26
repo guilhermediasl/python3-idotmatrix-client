@@ -548,8 +548,7 @@ class GlucoseMatrixDisplay:
         total_iob = 0
         for treatment in treatments:
             if treatment.type == "Bolus":
-                treatment_time = datetime.datetime.fromtimestamp(treatment.date)
-                total_iob += treatment.amount * self.get_iob_contribution(treatment_time,current_time)
+                total_iob += treatment.amount * self.get_iob_contribution(treatment.date,current_time)
 
         # Append initial IOB value
         while total_iob > near_zero_threshold:
@@ -560,8 +559,7 @@ class GlucoseMatrixDisplay:
             total_iob = 0
             for treatment in treatments:
                 if treatment.type == "Bolus":
-                    treatment_time = datetime.datetime.fromtimestamp(treatment.date)
-                    total_iob += treatment.amount * self.get_iob_contribution(treatment_time,current_time)
+                    total_iob += treatment.amount * self.get_iob_contribution(treatment.date,current_time)
 
         return iob_over_time
 
