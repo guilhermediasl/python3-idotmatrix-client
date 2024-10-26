@@ -548,7 +548,7 @@ class GlucoseMatrixDisplay:
         total_iob = 0
         for treatment in treatments:
             if treatment.type == "Bolus":
-                treatment_time = datetime.datetime.fromtimestamp(treatment.date / 1000)
+                treatment_time = datetime.datetime.fromtimestamp(treatment.date)
                 total_iob += treatment.amount * self.get_iob_contribution(treatment_time,current_time)
 
         # Append initial IOB value
@@ -560,7 +560,7 @@ class GlucoseMatrixDisplay:
             total_iob = 0
             for treatment in treatments:
                 if treatment.type == "Bolus":
-                    treatment_time = datetime.datetime.fromtimestamp(treatment.date / 1000)
+                    treatment_time = datetime.datetime.fromtimestamp(treatment.date)
                     total_iob += treatment.amount * self.get_iob_contribution(treatment_time,current_time)
 
         return iob_over_time
