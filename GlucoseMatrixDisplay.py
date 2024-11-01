@@ -1,4 +1,5 @@
 import subprocess
+import cv2
 import numpy as np
 import requests
 import time
@@ -30,16 +31,29 @@ class GlucoseItem:
         self.direction = direction
 
 class TreatmentItem:
-    def __init__(self, type: str, dateString: datetime.datetime, amount: int):
+    def __init__(self,id: str, type: str, dateString: datetime.datetime, amount: int):
+        self.id: str = id
         self.type: str = type
         self.date: datetime.datetime = dateString
         self.amount: int = int(amount)
+
+    def __str__(self):
+        return f"TreatmentItem(type='{self.type}', date='{self.date}', amount={self.amount})"
+
+    def __repr__(self):
+        return self.__str__()
 
 class ExerciseItem:
     def __init__(self, type, dateString, amount):
         self.type = type
         self.date = dateString
         self.amount = int(amount)
+
+    def __str__(self):
+        return f"ExerciseItem (type='{self.type}', date='{self.date}', amount={self.amount})"
+
+    def __repr__(self):
+        return self.__str__()
 
 class GlucoseMatrixDisplay:
     def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
@@ -51,11 +65,12 @@ class GlucoseMatrixDisplay:
         self.ip = self.config.get('ip')
         token = self.config.get('token')
         self.url_entries = f"{self.config.get('url')}/entries.json?token={token}&count=40"
-        self.url_treatments = f"{self.config.get('url')}/treatments.json?token={token}&count=40"
+        self.url_treatments = f"{self.config.get('url')}/treatments.json?token={token}&count=10"
         self.url_ping_entries = f"{self.config.get('url')}/entries.json?token={token}&count=1"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
+        self.image_out = self.config.get('image out', 'led matrix')
         self.night_brightness = float(self.config.get('night_brightness', 0.3))
         self.arrow = ''
         self.glucose_difference = 0
@@ -66,8 +81,8 @@ class GlucoseMatrixDisplay:
         self.iob_time_list = []
         self.today_bolus = 0
         self.newer_id = None
-        self.unblock_bluetooth()
         self.update_glucose_command()
+        if self.image_out == "led matrix": self.unblock_bluetooth()
 
     def load_config(self, config_path):
         try:
@@ -117,6 +132,22 @@ class GlucoseMatrixDisplay:
 
     def run_command(self):
         logging.info(f"Running command: {self.command}")
+        if self.image_out != "led matrix":
+            img = cv2.imread('output_image.png')
+            bright_img = cv2.add(img, np.ones(img.shape, dtype="uint8") * 50)
+
+            # Concatenate images horizontally
+            side_by_side = np.hstack((img, bright_img))
+
+            # Display the concatenated image in fullscreen
+            cv2.namedWindow('Comparison', cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty('Comparison', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            cv2.imshow('Comparison', side_by_side)
+
+            # Wait until a key is pressed
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+            return
         for _ in range(1,5):
             try:
                 result = subprocess.run(self.command, shell=True, check=True)
@@ -134,7 +165,6 @@ class GlucoseMatrixDisplay:
         while True:
             try:
                 ping_json = self.fetch_json_data(self.url_ping_entries)[0]
-                print(f"ping_json.get('_id'): {ping_json.get('_id')} self.newer_id: {self.newer_id}")
                 if not ping_json or self.is_old_data(ping_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
                     self.update_glucose_command("./images/nocgmdata.png")
@@ -279,6 +309,7 @@ class GlucoseMatrixDisplay:
     def generate_list_from_entries_json(self):
         for item in self.json_entries_data:
             treatment_date = datetime.datetime.strptime(item.get("dateString"), "%Y-%m-%dT%H:%M:%S.%fZ")
+            treatment_date += datetime.timedelta(minutes= -180)
             if item.get("type") == "sgv":
                 self.formmated_entries_json.append(GlucoseItem("sgv",
                                                   item.get("sgv"),
@@ -294,27 +325,32 @@ class GlucoseMatrixDisplay:
 
     def generate_list_from_treatments_json(self):
         for item in self.json_treatments_data:
-            time = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ")
+            time = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(minutes=item.get('utcOffset', 0))
+            if 'xDrip4iOS' in item.get("enteredBy"): 
+                time += datetime.timedelta(minutes= -180)
             if item.get("eventType") == "Carbs":
                 if not item.get("carbs"):
                     continue
-                self.formmated_treatments_json.append(TreatmentItem("Carbs",
-                                                  time,
-                                                  int(item.get("carbs"))))
+                self.formmated_treatments_json.append(TreatmentItem(item.get("_id"),
+                                                                    "Carbs",
+                                                                    time,
+                                                                    int(item.get("carbs"))))
             elif item.get("eventType") == "Bolus":
                 if not item.get("insulin"):
                     continue
-                self.formmated_treatments_json.append(TreatmentItem("Bolus",
-                                                  time,
-                                                  int(item.get("insulin"))))
+                self.formmated_treatments_json.append(TreatmentItem(item.get("_id"),
+                                                                    "Bolus",
+                                                                    time,
+                                                                    int(item.get("insulin"))))
             elif item.get("eventType") == "Exercise":
-                if item.get('utcOffset'):
-                    time = time + datetime.timedelta(minutes=item.get('utcOffset'))
                 if not item.get("duration"):
                     continue
                 self.formmated_treatments_json.append(ExerciseItem("Exercise",
                                                   time,
                                                   int(item.get("duration"))))
+                
+        for item in self.formmated_treatments_json[:5]:
+            print(item)
 
     def paint_around_value(self, x, y, color, painted_pixels):
         surrounding_pixels = []
@@ -337,12 +373,43 @@ class GlucoseMatrixDisplay:
         if entry_type == "mbg":
             return Color.white
 
-        if glucose < self.GLUCOSE_LOW - 10 or glucose > self.GLUCOSE_HIGH + 10:
-            return Color.red
+        if glucose < self.GLUCOSE_LOW - 10:
+            return self.interpolate_color(Color.yellow, Color.red, glucose, self.GLUCOSE_LOW - 10, self.get_min_sgv())
+        if glucose > self.GLUCOSE_HIGH + 10:
+            return self.interpolate_color(Color.red, Color.yellow, glucose, self.GLUCOSE_HIGH + 10, self.get_max_sgv())
         elif glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
             return Color.yellow
         else:
             return Color.green
+
+    def interpolate_color(self, color1: List[int], color2: List[int], value: float, min_value: float, max_value: float) -> List[int]:
+        if value < min_value:
+            value = min_value
+        elif value > max_value:
+            value = max_value
+
+        t = (value - min_value) / (max_value - min_value)
+
+        r = int(color1[0] + t * (color2[0] - color1[0]))
+        g = int(color1[1] + t * (color2[1] - color1[1]))
+        b = int(color1[2] + t * (color2[2] - color1[2]))
+
+        return [r, g, b]
+
+
+    def get_max_sgv(self):
+        max_sgv = 0
+        for entry in self.formmated_entries_json:
+            max_sgv = max(max_sgv, entry.glucose)
+
+        return max_sgv
+
+    def get_min_sgv(self):
+        min_sgv = 100000
+        for entry in self.formmated_entries_json:
+            min_sgv = min(min_sgv, entry.glucose)
+
+        return min_sgv
 
     def set_glucose_difference(self):
         self.glucose_difference = int(self.first_value) - int(self.second_value)
@@ -574,8 +641,6 @@ class GlucoseMatrixDisplay:
         :param duration: Total insulin action duration in minutes.
         :return: The IOB contribution as a decimal factor (0 to 1).
         """
-        print(treatment_time)
-        print(current_time)
         minutes_since_treatment = (current_time - treatment_time).total_seconds() / 60
         if minutes_since_treatment < 0:
             return 0  # Treatment is in the future, no contribution yet
