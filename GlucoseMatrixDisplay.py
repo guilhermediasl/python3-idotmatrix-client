@@ -374,9 +374,9 @@ class GlucoseMatrixDisplay:
             return Color.white
 
         if glucose < self.GLUCOSE_LOW - 10:
-            return self.interpolate_color(Color.yellow, Color.red, glucose, self.GLUCOSE_LOW - 10, self.get_min_sgv())
+            return self.interpolate_color(Color.red, Color.yellow, glucose, self.GLUCOSE_LOW - 10, self.get_min_sgv())
         if glucose > self.GLUCOSE_HIGH + 10:
-            return self.interpolate_color(Color.red, Color.yellow, glucose, self.GLUCOSE_HIGH + 10, self.get_max_sgv())
+            return self.interpolate_color(Color.yellow, Color.red, glucose, self.GLUCOSE_HIGH + 10, self.get_max_sgv())
         elif glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
             return Color.yellow
         else:
