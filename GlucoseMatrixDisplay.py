@@ -1,3 +1,4 @@
+import math
 import subprocess
 import cv2
 import numpy as np
@@ -24,17 +25,17 @@ class Color:
     orange = [245, 70, 0]
 
 class GlucoseItem:
-    def __init__(self, type: str, glucose: int, dateString, direction : str = None):
+    def __init__(self, type: str, glucose: int, date, direction : str = None):
         self.type = type
         self.glucose = glucose
-        self.dateString = dateString 
+        self.date = date 
         self.direction = direction
 
 class TreatmentItem:
-    def __init__(self,id: str, type: str, dateString: datetime.datetime, amount: int):
+    def __init__(self,id: str, type: str, date: datetime.datetime, amount: int):
         self.id: str = id
         self.type: str = type
-        self.date: datetime.datetime = dateString
+        self.date: datetime.datetime = date
         self.amount: int = int(amount)
 
     def __str__(self):
@@ -67,6 +68,7 @@ class GlucoseMatrixDisplay:
         self.url_entries = f"{self.config.get('url')}/entries.json?token={token}&count=40"
         self.url_treatments = f"{self.config.get('url')}/treatments.json?token={token}&count=10"
         self.url_ping_entries = f"{self.config.get('url')}/entries.json?token={token}&count=1"
+        self.url_iob = f"{self.config.get('url')}/properties/iob?token={token}"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
         self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
@@ -78,10 +80,9 @@ class GlucoseMatrixDisplay:
         self.second_value = 0
         self.formmated_entries_json = []
         self.formmated_treatments_json = []
-        self.iob_time_list = []
+        self.iob_list = []
         self.today_bolus = 0
         self.newer_id = None
-        self.update_glucose_command()
         if self.image_out == "led matrix": self.unblock_bluetooth()
 
     def load_config(self, config_path):
@@ -99,6 +100,7 @@ class GlucoseMatrixDisplay:
         logging.info("Updating glucose command.")
         self.json_entries_data = self.fetch_json_data(self.url_entries)
         self.json_treatments_data = self.fetch_json_data(self.url_treatments)
+        self.json_iob = self.fetch_json_data(self.url_iob)
 
         if self.json_entries_data:
             self.points = self.parse()
@@ -140,14 +142,15 @@ class GlucoseMatrixDisplay:
             side_by_side = np.hstack((img, bright_img))
 
             # Display the concatenated image in fullscreen
-            cv2.namedWindow('Comparison', cv2.WND_PROP_FULLSCREEN)
-            cv2.setWindowProperty('Comparison', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-            cv2.imshow('Comparison', side_by_side)
+            cv2.namedWindow('Led Matrix', cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty('Led Matrix', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            cv2.imshow('Led Matrix', side_by_side)
 
             # Wait until a key is pressed
             cv2.waitKey(0)
             cv2.destroyAllWindows()
             return
+        
         for _ in range(1,5):
             try:
                 result = subprocess.run(self.command, shell=True, check=True)
@@ -242,9 +245,7 @@ class GlucoseMatrixDisplay:
         self.y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
         self.y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
         treatments = self.get_treatment_x_values()
-        
-        self.iob_time_list = self.calculate_insulin_on_board(self.formmated_treatments_json)
-        print(self.iob_time_list)
+        self.iob_list = self.get_iob()
 
         pixels = self.display_glucose_on_matrix(self.first_value)
 
@@ -259,13 +260,22 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
         pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
 
+        for id,iob in enumerate(self.iob_list):
+            print(f"{id},{iob}")
+            pixels.extend(self.draw_vertical_line(self.matrix_size - id - 1,
+                                                self.fade_color(Color.blue, 0.1),
+                                                pixels,
+                                                self.y_high,
+                                                round(iob)))
+
         for treatment in treatments:
             if treatment[2] in ("Bolus","Carbs"):
                 pixels.extend(self.draw_vertical_line(treatment[0],
-                                                    self.fade_color(Color.blue, 0.2) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.2),
+                                                    self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.2),
                                                     pixels,
                                                     self.y_high,
-                                                    treatment[1]))
+                                                    treatment[1],
+                                                    True))
             elif treatment[2] == "Exercise":
                 pixels.extend(self.draw_horizontal_line(self.y_high,
                                                         self.fade_color(Color.purple,0.5),
@@ -294,17 +304,6 @@ class GlucoseMatrixDisplay:
             if item.type == "sgv":
                 self.second_value = item.glucose
                 break
-
-    def check_wifi(self):
-        """Checks Wi-Fi access by pinging Google's DNS server"""
-        logging.info("Checking Wi-Fi connection.")
-        try:
-            subprocess.check_output(["ping", "-c", "1", "8.8.8.8"], timeout=5)
-            logging.info("Wi-Fi is available.")
-            return True
-        except subprocess.CalledProcessError:
-            logging.error("Wi-Fi not available.")
-            return False
 
     def generate_list_from_entries_json(self):
         for item in self.json_entries_data:
@@ -429,7 +428,7 @@ class GlucoseMatrixDisplay:
                 pixels.append([x, y, *color])
         return pixels
 
-    def draw_vertical_line(self, x, color, old_pixels, low_y, height):
+    def draw_vertical_line(self, x, color, old_pixels, low_y, height, enable_five=False):
         pixels = []
         for y in list(range(low_y, low_y + height + 1)):
             already_paintted = False
@@ -438,8 +437,9 @@ class GlucoseMatrixDisplay:
                     already_paintted = True
                     break
             temp_color = color
-            if not self.is_five_apart(low_y, y):
-                temp_color = self.fade_color(color, 0.5)
+            if enable_five:
+                if not self.is_five_apart(low_y, y):
+                    temp_color = self.fade_color(color, 0.5)
             if not already_paintted: pixels.append([ x, y, *temp_color])
         return pixels
 
@@ -569,8 +569,8 @@ class GlucoseMatrixDisplay:
             logging.warning("No glucose entries available.")
             return treatment_x_values
 
-        first_entry_time = self.formmated_entries_json[0].dateString
-        last_entry_time = self.formmated_entries_json[-1].dateString
+        first_entry_time = self.formmated_entries_json[0].date
+        last_entry_time = self.formmated_entries_json[-1].date
 
         # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
@@ -583,76 +583,28 @@ class GlucoseMatrixDisplay:
 
             # Find the closest glucose entry to this treatment
             if treatment.type in ("Bolus","Carbs"):
-                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
+                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
                 x_value = self.formmated_entries_json.index(closest_entry)
                 treatment_x_values.append((self.matrix_size - x_value - 1,
                                         min(treatment.amount, self.y_low - self.y_high),
                                         treatment.type))  # x-value and treatment amount for height
             elif treatment.type == "Exercise":
-                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.dateString))
+                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
                 x_value = self.formmated_entries_json.index(closest_entry)
                 treatment_x_values.append((self.matrix_size - x_value - 1,
                                         treatment.amount,
                                         treatment.type))  # x-value and treatment amount for height
 
         return treatment_x_values
-
-    def calculate_insulin_on_board(self, treatments: List[TreatmentItem]) -> List[Tuple[datetime.datetime,int]]:
-        """
-        Calculate Insulin on Board (IOB) at 5-minute intervals until IOB approaches zero.
-
-        :param treatments: List of treatments, each with 'insulin' amount and 'timestamp' in milliseconds.
-        :param current_time: The current time as a timestamp in milliseconds.
-        :return: List of tuples with timestamps and corresponding IOB values.
-        """
-        current_time = datetime.datetime.now()
-        five_min_interval = datetime.timedelta(minutes=5)
-        near_zero_threshold = 0.4  # IOB threshold to stop calculations
-
-        iob_over_time = []
-
-        # Calculate and store initial total IOB
-        total_iob = 0
-        for treatment in treatments:
-            if treatment.type == "Bolus":
-                total_iob += treatment.amount * self.get_iob_contribution(treatment.date,current_time)
-
-        # Append initial IOB value
-        while total_iob > near_zero_threshold:
-            iob_over_time.append((round(total_iob), current_time.hour))
-
-            # Move forward by 5 minutes and recalculate total IOB
-            current_time += five_min_interval
-            total_iob = 0
-            for treatment in treatments:
-                if treatment.type == "Bolus":
-                    total_iob += treatment.amount * self.get_iob_contribution(treatment.date,current_time)
-
-        return iob_over_time
-
-    def get_iob_contribution(self, treatment_time: datetime.datetime, current_time: datetime.datetime, onset=15, peak=75, duration=300) -> float:
-        """
-        Calculate the IOB contribution from a single treatment at a given time.
-
-        :param treatment_time: Time of the insulin treatment as datetime.
-        :param current_time: Current time as a datetime object.
-        :param onset: Time in minutes until insulin starts acting.
-        :param peak: Time in minutes until insulin reaches peak effect.
-        :param duration: Total insulin action duration in minutes.
-        :return: The IOB contribution as a decimal factor (0 to 1).
-        """
-        minutes_since_treatment = (current_time - treatment_time).total_seconds() / 60
-        if minutes_since_treatment < 0:
-            return 0  # Treatment is in the future, no contribution yet
-        elif minutes_since_treatment < onset:
-            return 1  # Insulin has not started acting yet
-        elif minutes_since_treatment < peak:
-            return 1 - 0.001852 * ((minutes_since_treatment / 5) + 1)**2 + 0.001852 * (minutes_since_treatment / 5 + 1)
-        elif minutes_since_treatment < duration:
-            elapsed_post_peak = (minutes_since_treatment - peak) / 5
-            return 0.001323 * elapsed_post_peak**2 - 0.054233 * elapsed_post_peak + 0.55556
+    
+    def get_iob(self):
+        iob_value = self.json_iob.get("iob", {}).get("iob", None)
+        if iob_value == None:
+            self.iob_list.insert(0,0)
         else:
-            return 0  # No contribution beyond duration
+            self.iob_list.insert(0,iob_value)
+        return self.iob_list[:self.matrix_size]
+        
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
