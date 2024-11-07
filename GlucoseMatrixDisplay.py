@@ -428,7 +428,7 @@ class GlucoseMatrixDisplay:
                 pixels.append([x, y, *color])
         return pixels
 
-    def draw_vertical_line(self, x, color, old_pixels, low_y, height, enable_five=True):
+    def draw_vertical_line(self, x, color, old_pixels, low_y, height, enable_five=False):
         pixels = []
         for y in list(range(low_y, low_y + height + 1)):
             already_paintted = False
