@@ -260,14 +260,6 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
         pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
 
-        for id,iob in enumerate(self.iob_list):
-            print(f"{id},{iob}")
-            pixels.extend(self.draw_vertical_line(self.matrix_size - id - 1,
-                                                self.fade_color(Color.white, 0.15),
-                                                pixels,
-                                                self.y_high,
-                                                round(iob)))
-
         for treatment in treatments:
             if treatment[2] in ("Bolus","Carbs"):
                 pixels.extend(self.draw_vertical_line(treatment[0],
@@ -289,6 +281,14 @@ class GlucoseMatrixDisplay:
                                                         max(treatment[0], 0),
                                                         min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
                                                         ))
+
+        for id,iob in enumerate(self.iob_list):
+            print(f"{id},{iob}")
+            pixels.extend(self.draw_vertical_line(self.matrix_size - id - 1,
+                                                self.fade_color(Color.white, 0.15),
+                                                pixels,
+                                                self.y_high,
+                                                round(iob)))
 
         self.today_bolus = self.get_todays_bolus()
         self.reset_formmated_jsons()
