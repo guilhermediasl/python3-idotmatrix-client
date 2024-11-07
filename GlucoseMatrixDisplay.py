@@ -285,7 +285,7 @@ class GlucoseMatrixDisplay:
         for id,iob in enumerate(self.iob_list):
             print(f"{id},{iob}")
             pixels.extend(self.draw_vertical_line(self.matrix_size - id - 1,
-                                                Color.white,
+                                                self.fade_color(Color.blue, 0.05),
                                                 pixels,
                                                 self.y_high,
                                                 round(iob)))
