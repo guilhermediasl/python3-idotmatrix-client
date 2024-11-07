@@ -285,7 +285,7 @@ class GlucoseMatrixDisplay:
         for id,iob in enumerate(self.iob_list):
             print(f"{id},{iob}")
             pixels.extend(self.draw_vertical_line(self.matrix_size - id - 1,
-                                                self.fade_color(Color.white, 0.15),
+                                                Color.white,
                                                 pixels,
                                                 self.y_high,
                                                 round(iob)))
@@ -347,9 +347,6 @@ class GlucoseMatrixDisplay:
                 self.formmated_treatments_json.append(ExerciseItem("Exercise",
                                                   time,
                                                   int(item.get("duration"))))
-                
-        for item in self.formmated_treatments_json[:5]:
-            print(item)
 
     def paint_around_value(self, x, y, color, painted_pixels):
         surrounding_pixels = []
