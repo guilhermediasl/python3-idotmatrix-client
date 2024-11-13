@@ -112,7 +112,7 @@ class GlucoseMatrixDisplay:
         logging.info(f"Command updated: {self.command}")
         
     def update_glucose_command_counter(self, bars: int):
-        self.command = f"run_in_venv.bat --address {self.ip} --pixel-color 10-10-255-255-255"
+        self.command = f"./run_in_venv.bat --address {self.ip} --pixel-color 10-10-255-255-255"
 
     def generate_image(self, width=32, height=32):
         logging.info("Generating image.")
