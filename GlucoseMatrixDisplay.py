@@ -256,16 +256,13 @@ class GlucoseMatrixDisplay:
             pixels.append([x, y, r, g, b])
 
         upper_layer = pixels.copy()
-        
-        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
-        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
 
         for treatment in treatments:
             if treatment[2] in ("Bolus","Carbs"):
                 pixels.extend(self.draw_vertical_line(treatment[0],
                                                       self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.2),
                                                       pixels,
-                                                      self.y_high,
+                                                      self.y_high + 1,
                                                       treatment[1],
                                                       True))
             elif treatment[2] == "Exercise":
@@ -286,8 +283,11 @@ class GlucoseMatrixDisplay:
             pixels.extend(self.draw_vertical_line(self.matrix_size - id - 1,
                                                 self.fade_color(Color.blue, 0.05),
                                                 pixels,
-                                                self.y_high,
+                                                self.y_high + 1,
                                                 round(iob)))
+
+        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
+        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
 
         self.today_bolus = self.get_todays_bolus()
         self.reset_formmated_jsons()
@@ -426,8 +426,8 @@ class GlucoseMatrixDisplay:
 
     def draw_vertical_line(self, x, color, old_pixels, low_y, height, enable_five=False):
         pixels = []
-        if low_y + height + 1 < self.matrix_size:
-            y_max = low_y + height + 1
+        if low_y + height < self.matrix_size:
+            y_max = low_y + height
         else:
             y_max = self.matrix_size
         for y in list(range(low_y, y_max)):
@@ -453,7 +453,7 @@ class GlucoseMatrixDisplay:
                         matrix[x, y] = color
 
     def is_five_apart(self, init, current):
-        return (current - init) % 5 == 0
+        return (current - init + 1) % 5 == 0
 
     def matrix_to_pixel_list(self, matrix):
         pixel_list = []
