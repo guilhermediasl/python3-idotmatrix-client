@@ -110,6 +110,9 @@ class GlucoseMatrixDisplay:
             else:
                 self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image {image_path}"
         logging.info(f"Command updated: {self.command}")
+        
+    def update_glucose_command_counter(self, bars: int):
+        self.command = f"run_in_venv.bat --address {self.ip} --pixel-color 0-{bars}-255-0-0"
 
     def generate_image(self, width=32, height=32):
         logging.info("Generating image.")
@@ -178,7 +181,12 @@ class GlucoseMatrixDisplay:
                     self.update_glucose_command()
                     self.run_command()
                     self.newer_id = ping_json.get("_id")
-                time.sleep(5)
+                time.sleep(15)
+                self.update_glucose_command_counter(0)
+                self.run_command()
+                time.sleep(15)
+                self.update_glucose_command_counter(1)
+                self.run_command()
             except Exception as e:
                 logging.error(f"Error in the loop: {e}")
                 time.sleep(60)
