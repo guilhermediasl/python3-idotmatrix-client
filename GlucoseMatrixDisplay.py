@@ -429,7 +429,7 @@ class GlucoseMatrixDisplay:
         if low_y + height + 1 < self.matrix_size:
             y_max = low_y + height + 1
         else:
-            y_max = self.matrix_size - 1
+            y_max = self.matrix_size
         for y in list(range(low_y, y_max)):
             already_paintted = False
             for x_old,y_old,_,_,_ in old_pixels:
