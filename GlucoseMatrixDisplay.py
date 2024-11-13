@@ -426,7 +426,11 @@ class GlucoseMatrixDisplay:
 
     def draw_vertical_line(self, x, color, old_pixels, low_y, height, enable_five=False):
         pixels = []
-        for y in list(range(low_y, low_y + height + 1)):
+        if low_y + height + 1 < self.matrix_size:
+            y_max = low_y + height + 1
+        else:
+            y_max = self.matrix_size - 1
+        for y in list(range(low_y, y_max)):
             already_paintted = False
             for x_old,y_old,_,_,_ in old_pixels:
                 if x_old == x and y_old == y:
