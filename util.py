@@ -1,27 +1,42 @@
 from datetime import datetime
 
+class TreatmentEnum():
+    BOLUS = 'Bolus'
+    CARBS = 'Carbs'
+    EXERCISE = 'Exercise'
+
+class EntrieEnum():
+    SGV = 'sgv'
+    MBG = 'mbg'
+
 class Color:
-    red = [255, 20, 10]
-    green = [70, 167, 10]
-    yellow = [244, 170, 0]
-    purple = [250, 0, 105]
-    white = [230, 170, 80]
-    blue = [40, 150, 125]
-    orange = [245, 70, 0]
+    red    = (255, 20, 10)
+    green  = (70, 167, 10)
+    yellow = (244, 170, 0)
+    purple = (250, 0, 105)
+    white  = (230, 170, 80)
+    blue   = (40, 150, 125)
+    orange = (245, 70, 0)
 
 class GlucoseItem:
-    def __init__(self, type: str, glucose: int, date, direction : str = None):
-        self.type = type
-        self.glucose = glucose
-        self.date = date 
-        self.direction = direction
+    def __init__(self, type: EntrieEnum, glucose: int, date: datetime, direction: str = None):
+        self.type: EntrieEnum = type
+        self.glucose: int = glucose
+        self.date: datetime = date 
+        self.direction: str = direction
+        
+    def __str__(self):
+        return f"GlucoseItem (type='{self.type}', date='{self.date}', glucose={self.glucose})"
+
+    def __repr__(self):
+        return self.__str__()
 
 class TreatmentItem:
-    def __init__(self,id: str, type: str, date: datetime, amount: int):
+    def __init__(self, id: str, type: TreatmentEnum, date: datetime, amount: int):
         self.id: str = id
-        self.type: str = type
+        self.type: TreatmentEnum = type
         self.date: datetime = date
-        self.amount: int = int(amount)
+        self.amount: int = amount
 
     def __str__(self):
         return f"TreatmentItem(type='{self.type}', date='{self.date}', amount={self.amount})"
@@ -30,10 +45,10 @@ class TreatmentItem:
         return self.__str__()
 
 class ExerciseItem:
-    def __init__(self, type, dateString, amount):
-        self.type = type
-        self.date = dateString
-        self.amount = int(amount)
+    def __init__(self, type: TreatmentEnum, date: datetime, amount: int):
+        self.type: TreatmentEnum = type
+        self.date: datetime = date
+        self.amount: int = amount
 
     def __str__(self):
         return f"ExerciseItem (type='{self.type}', date='{self.date}', amount={self.amount})"

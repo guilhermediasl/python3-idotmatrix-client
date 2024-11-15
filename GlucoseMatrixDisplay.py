@@ -12,7 +12,7 @@ import logging
 from typing import List, Tuple
 from http.client import RemoteDisconnected
 from patterns import digit_patterns, arrow_patterns, signal_patterns
-from util import Color, GlucoseItem, TreatmentItem, ExerciseItem
+from util import Color, GlucoseItem, TreatmentItem, ExerciseItem, TreatmentEnum
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -218,14 +218,14 @@ class GlucoseMatrixDisplay:
         upper_layer = pixels.copy()
 
         for treatment in treatments:
-            if treatment[2] in ("Bolus","Carbs"):
+            if treatment[2] in (TreatmentEnum.BOLUS,TreatmentEnum.CARBS):
                 pixels.extend(self.draw_vertical_line(treatment[0],
-                                                      self.fade_color(Color.blue, 0.3) if treatment[2] == "Bolus" else self.fade_color(Color.orange, 0.2),
+                                                      self.fade_color(Color.blue, 0.3) if treatment[2] == TreatmentEnum.BOLUS else self.fade_color(Color.orange, 0.2),
                                                       pixels,
                                                       self.y_high + 1,
                                                       treatment[1],
                                                       True))
-            elif treatment[2] == "Exercise":
+            elif treatment[2] == TreatmentEnum.EXERCISE:
                 pixels.extend(self.draw_horizontal_line(self.y_high,
                                                         self.fade_color(Color.purple,0.5),
                                                         upper_layer,
@@ -286,24 +286,24 @@ class GlucoseMatrixDisplay:
             time = datetime.datetime.strptime(item.get("created_at"), "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(minutes=item.get('utcOffset', 0))
             if 'xDrip4iOS' in item.get("enteredBy"): 
                 time += datetime.timedelta(minutes= -180)
-            if item.get("eventType") == "Carbs":
+            if item.get("eventType") == TreatmentEnum.CARBS:
                 if not item.get("carbs"):
                     continue
                 self.formmated_treatments_json.append(TreatmentItem(item.get("_id"),
-                                                                    "Carbs",
+                                                                    TreatmentEnum.CARBS,
                                                                     time,
-                                                                    int(item.get("carbs"))))
-            elif item.get("eventType") == "Bolus":
+                                                                    item.get("carbs")))
+            elif item.get("eventType") == TreatmentEnum.BOLUS:
                 if not item.get("insulin"):
                     continue
                 self.formmated_treatments_json.append(TreatmentItem(item.get("_id"),
-                                                                    "Bolus",
+                                                                    TreatmentEnum.BOLUS,
                                                                     time,
-                                                                    int(item.get("insulin"))))
-            elif item.get("eventType") == "Exercise":
+                                                                    item.get("insulin")))
+            elif item.get("eventType") == TreatmentEnum.EXERCISE:
                 if not item.get("duration"):
                     continue
-                self.formmated_treatments_json.append(ExerciseItem("Exercise",
+                self.formmated_treatments_json.append(ExerciseItem(TreatmentEnum.EXERCISE,
                                                   time,
                                                   int(item.get("duration"))))
 
@@ -495,7 +495,7 @@ class GlucoseMatrixDisplay:
 
     def calculate_time_difference(self):
         current_time = datetime.datetime.now()
-        time_difference = current_time - self.formmated_entries_json[0].dateString
+        time_difference = current_time - self.formmated_entries_json[0].date
         minutes_difference = time_difference.total_seconds() // 60
         return int(minutes_difference)
 
@@ -513,7 +513,7 @@ class GlucoseMatrixDisplay:
         now = datetime.datetime.now()
         total_bolus = 0
         for item in self.formmated_treatments_json:
-            if item.type != "Bolus":
+            if item.type != TreatmentEnum.BOLUS:
                 continue
             if now.date() == item.date.date():
                 total_bolus += item.amount
@@ -533,7 +533,7 @@ class GlucoseMatrixDisplay:
         last_entry_time = self.formmated_entries_json[-1].date
 
         for treatment in self.formmated_treatments_json:
-            if treatment.type == "Exercise":
+            if treatment.type == TreatmentEnum.EXERCISE:
                 # Calculate the time that has passed since the treatment started
                 time_elapsed = (last_entry_time - treatment.date).total_seconds() / 60  # in minutes
                 remaining_amount = max(0, treatment.amount - time_elapsed)  # Adjust treatment.amount
@@ -546,13 +546,13 @@ class GlucoseMatrixDisplay:
                     continue
 
             # Find the closest glucose entry to this treatment
-            if treatment.type in ("Bolus", "Carbs"):
+            if treatment.type in (TreatmentEnum.BOLUS, TreatmentEnum.CARBS):
                 closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
                 x_value = self.formmated_entries_json.index(closest_entry)
                 treatment_x_values.append((self.matrix_size - x_value - 1,
                                         treatment.amount,
                                         treatment.type))  # x-value and treatment amount for height
-            elif treatment.type == "Exercise":
+            elif treatment.type == TreatmentEnum.EXERCISE:
                 closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
                 x_value = self.formmated_entries_json.index(closest_entry)
                 treatment_x_values.append((self.matrix_size - x_value - 1,
