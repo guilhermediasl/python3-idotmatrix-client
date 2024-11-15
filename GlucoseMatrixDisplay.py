@@ -12,49 +12,9 @@ import logging
 from typing import List, Tuple
 from http.client import RemoteDisconnected
 from patterns import digit_patterns, arrow_patterns, signal_patterns
+from util import Color, GlucoseItem, TreatmentItem, ExerciseItem
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-class Color:
-    red = [255, 20, 10]
-    green = [70, 167, 10]
-    yellow = [244, 170, 0]
-    purple = [250, 0, 105]
-    white = [230, 170, 80]
-    blue = [20, 150, 135]
-    orange = [245, 70, 0]
-
-class GlucoseItem:
-    def __init__(self, type: str, glucose: int, date, direction : str = None):
-        self.type = type
-        self.glucose = glucose
-        self.date = date 
-        self.direction = direction
-
-class TreatmentItem:
-    def __init__(self,id: str, type: str, date: datetime.datetime, amount: int):
-        self.id: str = id
-        self.type: str = type
-        self.date: datetime.datetime = date
-        self.amount: int = int(amount)
-
-    def __str__(self):
-        return f"TreatmentItem(type='{self.type}', date='{self.date}', amount={self.amount})"
-
-    def __repr__(self):
-        return self.__str__()
-
-class ExerciseItem:
-    def __init__(self, type, dateString, amount):
-        self.type = type
-        self.date = dateString
-        self.amount = int(amount)
-
-    def __str__(self):
-        return f"ExerciseItem (type='{self.type}', date='{self.date}', amount={self.amount})"
-
-    def __repr__(self):
-        return self.__str__()
 
 class GlucoseMatrixDisplay:
     def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
@@ -581,8 +541,6 @@ class GlucoseMatrixDisplay:
                 if remaining_amount <= 0:
                     continue  # Skip if no time remains
 
-                if treatment.date < last_entry_time - datetime.timedelta(minutes=remaining_amount):
-                    continue
             else:
                 if treatment.date > first_entry_time or treatment.date < last_entry_time:
                     continue
