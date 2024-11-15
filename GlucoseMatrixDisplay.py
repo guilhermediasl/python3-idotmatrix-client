@@ -270,13 +270,13 @@ class GlucoseMatrixDisplay:
                                                         self.fade_color(Color.purple,0.5),
                                                         upper_layer,
                                                         max(treatment[0], 0),
-                                                        min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
+                                                        min(treatment[0] + math.ceil(treatment[1]/5), self.matrix_size - 1)
                                                         ))
                 pixels.extend(self.draw_horizontal_line(self.y_low,
                                                         self.fade_color(Color.purple,0.5),
                                                         upper_layer,
                                                         max(treatment[0], 0),
-                                                        min(treatment[0] + int(treatment[1]/5), self.matrix_size - 1)
+                                                        min(treatment[0] + math.ceil(treatment[1]/5), self.matrix_size - 1)
                                                         ))
 
         for id,iob in enumerate(self.iob_list):
@@ -572,17 +572,23 @@ class GlucoseMatrixDisplay:
         first_entry_time = self.formmated_entries_json[0].date
         last_entry_time = self.formmated_entries_json[-1].date
 
-        # Check if treatments fall within the range
         for treatment in self.formmated_treatments_json:
             if treatment.type == "Exercise":
-                if treatment.date > first_entry_time or treatment.date < last_entry_time + datetime.timedelta(seconds=int(treatment.amount / 5)):
+                # Calculate the time that has passed since the treatment started
+                time_elapsed = (last_entry_time - treatment.date).total_seconds() / 60  # in minutes
+                remaining_amount = max(0, treatment.amount - time_elapsed)  # Adjust treatment.amount
+                
+                if remaining_amount <= 0:
+                    continue  # Skip if no time remains
+
+                if treatment.date < last_entry_time - datetime.timedelta(minutes=remaining_amount):
                     continue
             else:
                 if treatment.date > first_entry_time or treatment.date < last_entry_time:
                     continue
 
             # Find the closest glucose entry to this treatment
-            if treatment.type in ("Bolus","Carbs"):
+            if treatment.type in ("Bolus", "Carbs"):
                 closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
                 x_value = self.formmated_entries_json.index(closest_entry)
                 treatment_x_values.append((self.matrix_size - x_value - 1,
@@ -592,8 +598,8 @@ class GlucoseMatrixDisplay:
                 closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
                 x_value = self.formmated_entries_json.index(closest_entry)
                 treatment_x_values.append((self.matrix_size - x_value - 1,
-                                        treatment.amount,
-                                        treatment.type))  # x-value and treatment amount for height
+                                        remaining_amount,  # Adjusted amount
+                                        treatment.type))  # x-value and adjusted treatment amount for height
 
         return treatment_x_values
     
