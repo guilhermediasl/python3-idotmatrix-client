@@ -38,10 +38,9 @@ class GlucoseMatrixDisplay:
         self.glucose_difference = 0
         self.first_value = None
         self.second_value = 0
-        self.formmated_entries_json = []
+        self.formmated_entries_json: List[GlucoseItem] = []
         self.formmated_treatments_json = []
         self.iob_list = []
-        self.today_bolus = 0
         self.newer_id = None
         if self.image_out == "led matrix": self.unblock_bluetooth()
 
@@ -146,7 +145,6 @@ class GlucoseMatrixDisplay:
     def reset_formmated_jsons(self):
         self.formmated_entries_json = []
         self.formmated_treatments_json = []
-        self.today_bolus = 0
 
     def fetch_json_data(self, url, retries=5, delay=10, fallback_delay=300):
         attempt = 0
@@ -249,7 +247,6 @@ class GlucoseMatrixDisplay:
         pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
         pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
 
-        self.today_bolus = self.get_todays_bolus()
         self.reset_formmated_jsons()
         return pixels
 
@@ -304,8 +301,8 @@ class GlucoseMatrixDisplay:
                 if not item.get("duration"):
                     continue
                 self.formmated_treatments_json.append(ExerciseItem(TreatmentEnum.EXERCISE,
-                                                  time,
-                                                  int(item.get("duration"))))
+                                                                    time,
+                                                                    int(item.get("duration"))))
 
     def paint_around_value(self, x, y, color, painted_pixels):
         surrounding_pixels = []
@@ -509,19 +506,6 @@ class GlucoseMatrixDisplay:
         else:
             return 1.0
 
-    def get_todays_bolus(self):
-        now = datetime.datetime.now()
-        total_bolus = 0
-        for item in self.formmated_treatments_json:
-            if item.type != TreatmentEnum.BOLUS:
-                continue
-            if now.date() == item.date.date():
-                total_bolus += item.amount
-            else:
-                break
-
-        return total_bolus
-
     def get_treatment_x_values(self):
         treatment_x_values = []
 
@@ -536,7 +520,10 @@ class GlucoseMatrixDisplay:
             if treatment.type == TreatmentEnum.EXERCISE:
                 # Calculate the time that has passed since the treatment started
                 time_elapsed = (last_entry_time - treatment.date).total_seconds() / 60  # in minutes
-                remaining_amount = max(0, treatment.amount - time_elapsed)  # Adjust treatment.amount
+                if first_entry_time > treatment.date:
+                    remaining_amount = 0.00001
+                else:
+                    remaining_amount = max(0, treatment.amount - time_elapsed)  # Adjust treatment.amount
                 
                 if remaining_amount <= 0:
                     continue  # Skip if no time remains
@@ -556,7 +543,7 @@ class GlucoseMatrixDisplay:
                 closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
                 x_value = self.formmated_entries_json.index(closest_entry)
                 treatment_x_values.append((self.matrix_size - x_value - 1,
-                                        remaining_amount,  # Adjusted amount
+                                        int(treatment.amount - remaining_amount),  # Adjusted amount
                                         treatment.type))  # x-value and adjusted treatment amount for height
 
         return treatment_x_values
