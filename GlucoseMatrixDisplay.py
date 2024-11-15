@@ -12,7 +12,7 @@ import logging
 from typing import List, Tuple
 from http.client import RemoteDisconnected
 from patterns import digit_patterns, arrow_patterns, signal_patterns
-from util import Color, GlucoseItem, TreatmentItem, ExerciseItem, TreatmentEnum
+from util import Color, GlucoseItem, TreatmentItem, ExerciseItem, TreatmentEnum, EntrieEnum
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -190,7 +190,7 @@ class GlucoseMatrixDisplay:
 
     def set_arrow(self):
         for item in self.formmated_entries_json:
-            if item.type == "sgv":
+            if item.type == EntrieEnum.SGV:
                 self.arrow = item.direction
                 break
 
@@ -256,11 +256,11 @@ class GlucoseMatrixDisplay:
     def extract_first_and_second_value(self):
         first_value_saved_flag = False
         for item in self.formmated_entries_json:
-            if item.type == "sgv" and not first_value_saved_flag:
+            if item.type == EntrieEnum.SGV and not first_value_saved_flag:
                 self.first_value = item.glucose
                 first_value_saved_flag = True
                 continue
-            if item.type == "sgv":
+            if item.type == EntrieEnum.SGV:
                 self.second_value = item.glucose
                 break
 
@@ -268,14 +268,14 @@ class GlucoseMatrixDisplay:
         for item in self.json_entries_data:
             treatment_date = datetime.datetime.strptime(item.get("dateString"), "%Y-%m-%dT%H:%M:%S.%fZ")
             treatment_date += datetime.timedelta(minutes= -180)
-            if item.get("type") == "sgv":
-                self.formmated_entries_json.append(GlucoseItem("sgv",
-                                                  item.get("sgv"),
+            if item.get("type") == EntrieEnum.SGV:
+                self.formmated_entries_json.append(GlucoseItem(EntrieEnum.SGV,
+                                                  item.get(EntrieEnum.SGV),
                                                   treatment_date,
                                                   item.get("direction")))
-            elif item.get("type") == "mbg":
-                self.formmated_entries_json.append(GlucoseItem("mbg",
-                                                  item.get("mbg"),
+            elif item.get("type") == EntrieEnum.MBG:
+                self.formmated_entries_json.append(GlucoseItem(EntrieEnum.MBG,
+                                                  item.get(EntrieEnum.MBG),
                                                   treatment_date))
             
             if len(self.formmated_entries_json) == self.matrix_size:
@@ -324,8 +324,8 @@ class GlucoseMatrixDisplay:
                     surrounding_pixels.append([new_x, new_y, *self.fade_color(color, .2)])
         return surrounding_pixels
 
-    def determine_color(self, glucose, entry_type="sgv"):
-        if entry_type == "mbg":
+    def determine_color(self, glucose, entry_type=EntrieEnum.SGV):
+        if entry_type == EntrieEnum.MBG:
             return Color.white
 
         if glucose < self.GLUCOSE_LOW - 10:
