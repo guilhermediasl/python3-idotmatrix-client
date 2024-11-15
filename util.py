@@ -6,7 +6,7 @@ class Color:
     yellow = [244, 170, 0]
     purple = [250, 0, 105]
     white = [230, 170, 80]
-    blue = [25, 150, 125]
+    blue = [40, 150, 125]
     orange = [245, 70, 0]
 
 class GlucoseItem:
