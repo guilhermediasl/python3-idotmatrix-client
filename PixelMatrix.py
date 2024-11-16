@@ -1,0 +1,208 @@
+from datetime import datetime
+import logging
+import math
+from typing import List
+import numpy as np
+import png
+import pytz
+from patterns import digit_patterns, arrow_patterns, signal_patterns
+from util import Color, EntrieEnum, GlucoseItem, TreatmentEnum
+
+class PixelMatrix:
+    def __init__(self, matrix_size: int, min_glucose: int, max_glucose: int, GLUCOSE_LOW, GLUCOSE_HIGH):
+        self.min_glucose = min_glucose
+        self.matrix_size = matrix_size
+        self.max_glucose = max_glucose
+        self.GLUCOSE_LOW = GLUCOSE_LOW
+        self.GLUCOSE_HIGH = GLUCOSE_HIGH
+        self.pixels = [[[0, 0, 0] for _ in range(matrix_size)] for _ in range(matrix_size)]
+
+    def set_formmated_entries(self, formmated_entries):
+        self.formmated_entries = formmated_entries
+
+    def set_formmated_treatments(self, formmated_treatments):
+        self.formmated_treatments = formmated_treatments
+
+    def set_arrow(self, arrow: str):
+        self.arrow = arrow
+
+    def set_glucose_difference(self, glucose_difference: int):
+        self.glucose_difference = glucose_difference
+
+    def set_pixel(self, x: int, y: int, r: int, g: int, b: int):
+        if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
+            self.pixels[y][x] = [r, g, b]
+
+    def get_pixel(self, x: int, y: int) -> List[int]:
+        return self.pixels[y][x]
+
+    def paint_background(self, color=(0, 0, 0)):
+        for y in range(self.height):
+            for x in range(self.matrix_size):
+                self.pixels[y][x] = color
+
+    def draw_vertical_line(self, x: int, color: List[int], glucose: int, height: int, enable_five=False):
+        start_y = self.glucose_to_y_coordinate(glucose) + 1
+        if start_y + height < self.matrix_size:
+            y_max = start_y + height
+        else:
+            y_max = self.matrix_size
+        
+        for y in range(start_y, y_max):
+            temp_color = color
+            if enable_five:
+                if not self.is_five_apart(start_y, y):
+                    temp_color = self.fade_color(color, 0.5)
+
+            self.set_pixel(x, y, *temp_color)
+
+    def draw_horizontal_line(self, glucose: int, color: List[int], start_x: int, finish_x: int):
+        y = self.glucose_to_y_coordinate(glucose) + 1
+        finish_x = min(start_x + finish_x, self.matrix_size)
+        start_x = max(start_x, 0)
+        for x in range(start_x, finish_x):
+            self.set_pixel(x, y, *color)
+
+    def display_glucose_on_matrix(self, glucose_value: int):
+        glucose_str = str(glucose_value)
+        color = Color.white
+        digit_width, digit_height, spacing = 3, 5, 1
+        digits_width = len(glucose_str) * (digit_width + spacing)
+
+        arrow_pattern = arrow_patterns().get(self.arrow, np.zeros((5, 5)))
+        arrow_width = arrow_pattern.shape[1] + spacing
+        signal_width = 3 + spacing
+
+        glucose_diff_str = str(abs(self.glucose_difference))
+        glucose_diff_width = len(glucose_diff_str) * (digit_width + spacing)
+        total_width = digits_width + arrow_width + signal_width + glucose_diff_width
+        start_x = (self.matrix_size - total_width) // 2
+        y_position = (self.matrix_size - digit_height) // 2 - 13
+
+        x_position = start_x
+        for digit in glucose_str:
+            digit_pattern = digit_patterns()[digit]
+            for i, row in enumerate(digit_pattern):
+                for j, value in enumerate(row):
+                    if value:
+                        self.set_pixel(x_position + j, y_position + i, *color)
+            x_position += digit_width + spacing
+
+        for i, row in enumerate(arrow_pattern):
+            for j, value in enumerate(row):
+                if value:
+                    self.set_pixel(x_position + j, y_position + i, *color)
+        x_position += arrow_width
+
+        signal_pattern = signal_patterns()[self.get_glucose_difference_signal()]
+        for i, row in enumerate(signal_pattern):
+            for j, value in enumerate(row):
+                if value:
+                    self.set_pixel(x_position + j, y_position + i, *color)
+        x_position += signal_width
+
+        for digit in glucose_diff_str:
+            digit_pattern = digit_patterns()[digit]
+            for i, row in enumerate(digit_pattern):
+                for j, value in enumerate(row):
+                    if value:
+                        self.set_pixel(x_position + j, y_position + i, *color)
+            x_position += digit_width + spacing
+    
+    def display_entries(self, formmated_entries: List[GlucoseItem]):
+        for idx, entry in enumerate(formmated_entries[:self.matrix_size]):
+            x = self.matrix_size - idx - 1
+            y = self.glucose_to_y_coordinate(entry.glucose)
+            r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
+            self.set_pixel(x, y, r, g, b)
+            
+    def generate_image(self, output_file="output_image.png"):
+        logging.info("Generating image.")
+        brightness = self.get_brightness_on_hour()
+
+        if brightness != 1.0:
+            for x in range(0, self.matrix_size - 1):
+                for y in range(0, self.matrix_size - 1):
+                    r, g, b = self.get_pixel(x, y)
+                    self.set_pixel(x, y, *self.fade_color((r, g, b), brightness))
+
+        png_matrix = []
+        for row in self.pixels:
+            png_matrix.append([val for pixel in row for val in pixel])
+
+        with open(output_file, "wb") as f:
+            writer = png.Writer(self.matrix_size, self.matrix_size, greyscale=False)
+            writer.write(f, png_matrix)
+        logging.info(f"Image generated and saved as {output_file}.")
+
+    def glucose_to_y_coordinate(self, glucose: int) -> int:
+        glucose = max(self.min_glucose, min(glucose, self.max_glucose))
+        available_y_range = self.matrix_size - 6
+        normalized = (glucose - self.min_glucose) / (self.max_glucose - self.min_glucose)
+        return int((1 - normalized) * available_y_range) + 5
+
+    def get_brightness_on_hour(self, timezone_str="America/Recife") -> float:
+        local_tz = pytz.timezone(timezone_str)
+        current_time = datetime.now(local_tz)
+        current_hour = current_time.hour
+
+        if 21 <= current_hour or current_hour < 6:
+            return self.night_brightness
+        else:
+            return 1.0
+        
+    def determine_color(self, glucose: int, entry_type=EntrieEnum.SGV) -> List[int]:
+        if entry_type == EntrieEnum.MBG:
+            return Color.white
+
+        if glucose < self.GLUCOSE_LOW - 10:
+            return self.interpolate_color(Color.red, Color.yellow, glucose, self.get_min_sgv(), self.GLUCOSE_LOW - 10,)
+        if glucose > self.GLUCOSE_HIGH + 10:
+            return self.interpolate_color(Color.yellow, Color.red, glucose, self.GLUCOSE_HIGH + 10, self.get_max_sgv())
+        elif glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
+            return Color.yellow
+        else:
+            return Color.green
+
+    def interpolate_color(self, color1: List[int], color2: List[int], value: int, min_value: int, max_value: int) -> List[int]:
+        if value < min_value:
+            value = min_value
+        elif value > max_value:
+            value = max_value
+
+        t = (value - min_value) / (max_value - min_value)
+
+        r = int(color1[0] + t * (color2[0] - color1[0]))
+        g = int(color1[1] + t * (color2[1] - color1[1]))
+        b = int(color1[2] + t * (color2[2] - color1[2]))
+
+        return [r, g, b]
+
+    def get_glucose_difference_signal(self) -> str:
+        return '-' if self.glucose_difference < 0 else '+'
+
+    def get_max_sgv(self) -> int:
+        max_sgv = 0
+        for entry in self.formmated_entries:
+            max_sgv = max(max_sgv, entry.glucose)
+
+        return max_sgv
+
+    def get_min_sgv(self) -> int:
+        min_sgv = 100000
+        for entry in self.formmated_entries:
+            min_sgv = min(min_sgv, entry.glucose)
+
+        return min_sgv
+
+    def is_five_apart(self, init: int, current: int) -> bool:
+        return (current - init + 1) % 5 == 0
+
+    def fade_color(self, color: List[int], percentil: float) -> List[int]:
+        fadded_color = []
+        for item in color:
+            fadded_color.append(math.ceil(item * percentil))
+        return fadded_color
+
+    def paint_background(self) -> str:
+        return f" --fullscreen-color {round(self.color[0]*0.1)}-{round(self.color[1]*0.1)}-{round(self.color[2]*0.1)}"

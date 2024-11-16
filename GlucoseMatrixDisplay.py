@@ -7,12 +7,11 @@ import time
 import json
 import datetime
 import pytz
-import png
 import logging
-from typing import List, Tuple
+from typing import List
 from http.client import RemoteDisconnected
-from patterns import digit_patterns, arrow_patterns, signal_patterns
 from util import Color, GlucoseItem, TreatmentItem, ExerciseItem, TreatmentEnum, EntrieEnum
+from PixelMatrix import PixelMatrix
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -30,7 +29,7 @@ class GlucoseMatrixDisplay:
         self.url_ping_entries = f"{self.config.get('url')}/entries.json?token={token}&count=1"
         self.url_iob = f"{self.config.get('url')}/properties/iob?token={token}"
         self.GLUCOSE_LOW = self.config.get('low bondary glucose')
-        self.GLUCOSE_HIGH = self.config.get('high bondary glucose')
+        self.GLUCOSE_HIGHT = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
         self.image_out = self.config.get('image out', 'led matrix')
         self.night_brightness = float(self.config.get('night_brightness', 0.3))
@@ -38,8 +37,8 @@ class GlucoseMatrixDisplay:
         self.glucose_difference = 0
         self.first_value = None
         self.second_value = 0
-        self.formmated_entries_json: List[GlucoseItem] = []
-        self.formmated_treatments_json = []
+        self.formmated_entries: List[GlucoseItem] = []
+        self.formmated_treatments = []
         self.iob_list = []
         self.newer_id = None
         if self.image_out == "led matrix": self.unblock_bluetooth()
@@ -62,34 +61,16 @@ class GlucoseMatrixDisplay:
         self.json_iob = self.fetch_json_data(self.url_iob)
 
         if self.json_entries_data:
-            self.points = self.parse()
-            self.generate_image()
+            self.parse_matrix_values()
+            self.pixelMatrix = self.build_pixel_matrix()
+            self.pixelMatrix.generate_image()
+            self.reset_formmated_jsons()
+
             if self.os == 'windows':
                 self.command = f"run_in_venv.bat --address {self.ip} --image true --set-image {image_path}"
             else:
                 self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image {image_path}"
         logging.info(f"Command updated: {self.command}")
-
-    def generate_image(self, width=32, height=32):
-        logging.info("Generating image.")
-        brightness = self.get_brightness_on_hour()
-        matrix = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
-
-        if brightness != 1.0:
-            for x, y, r, g, b in self.points:
-                matrix[y][x] = self.fade_color((r, g, b), brightness)
-        else:
-            for x, y, r, g, b in self.points:
-                matrix[y][x] = (r, g, b)
-
-        png_matrix = []
-        for row in matrix:
-            png_matrix.append([val for pixel in row for val in pixel])
-
-        with open("output_image.png", "wb") as f:
-            writer = png.Writer(width, height, greyscale=False)
-            writer.write(f, png_matrix)
-        logging.info("Image generated and saved as output_image.png.")
 
     def run_command(self):
         logging.info(f"Running command: {self.command}")
@@ -143,8 +124,8 @@ class GlucoseMatrixDisplay:
                 time.sleep(60)
 
     def reset_formmated_jsons(self):
-        self.formmated_entries_json = []
-        self.formmated_treatments_json = []
+        self.formmated_entries = []
+        self.formmated_treatments = []
 
     def fetch_json_data(self, url, retries=5, delay=10, fallback_delay=300):
         attempt = 0
@@ -180,79 +161,72 @@ class GlucoseMatrixDisplay:
                 attempt = 0  # Reset attempts after max retries
                 time.sleep(fallback_delay)  # Wait longer before retrying again
 
-    def glucose_to_y_coordinate(self, glucose):
-        glucose = max(self.min_glucose, min(glucose, self.max_glucose))
-        available_y_range = self.matrix_size - 6
-        normalized = (glucose - self.min_glucose) / (self.max_glucose - self.min_glucose)
-        return int((1 - normalized) * available_y_range) + 5
-
     def set_arrow(self):
-        for item in self.formmated_entries_json:
+        for item in self.formmated_entries:
             if item.type == EntrieEnum.SGV:
                 self.arrow = item.direction
                 break
 
-    def parse(self):
-        pixels = []
-
+    def parse_matrix_values(self):
         self.generate_list_from_entries_json()
         self.generate_list_from_treatments_json()
         self.extract_first_and_second_value()
         self.set_glucose_difference()
         self.set_arrow()
-        self.y_low = self.glucose_to_y_coordinate(self.GLUCOSE_LOW)
-        self.y_high = self.glucose_to_y_coordinate(self.GLUCOSE_HIGH)
-        treatments = self.get_treatment_x_values()
         self.iob_list = self.get_iob()
 
-        pixels = self.display_glucose_on_matrix(self.first_value)
+    def build_pixel_matrix(self):
+        bolus_with_x_values,carbs_with_x_values,exercises_with_x_values = self.get_treatments_x_values()
 
-        for idx, entry in enumerate(self.formmated_entries_json[:self.matrix_size]):
-            x = self.matrix_size - idx - 1
-            y = self.glucose_to_y_coordinate(entry.glucose)
-            r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
-            pixels.append([x, y, r, g, b])
+        pixelMatrix: PixelMatrix = PixelMatrix(self.matrix_size,self.min_glucose,self.max_glucose, self.GLUCOSE_LOW, self.GLUCOSE_HIGHT)
+        pixelMatrix.set_formmated_entries(self.formmated_entries)
+        pixelMatrix.set_formmated_treatments(self.formmated_treatments)
+        pixelMatrix.set_arrow(self.arrow)
+        pixelMatrix.set_glucose_difference(self.glucose_difference)
 
-        upper_layer = pixels.copy()
+        pixelMatrix.display_glucose_on_matrix(self.first_value)
 
-        for treatment in treatments:
-            if treatment[2] in (TreatmentEnum.BOLUS,TreatmentEnum.CARBS):
-                pixels.extend(self.draw_vertical_line(treatment[0],
-                                                      self.fade_color(Color.blue, 0.3) if treatment[2] == TreatmentEnum.BOLUS else self.fade_color(Color.orange, 0.2),
-                                                      pixels,
-                                                      self.y_high + 1,
-                                                      treatment[1],
-                                                      True))
-            elif treatment[2] == TreatmentEnum.EXERCISE:
-                pixels.extend(self.draw_horizontal_line(self.y_high,
-                                                        self.fade_color(Color.purple,0.5),
-                                                        upper_layer,
-                                                        max(treatment[0], 0),
-                                                        min(treatment[0] + math.ceil(treatment[1]/5), self.matrix_size - 1)
-                                                        ))
-                pixels.extend(self.draw_horizontal_line(self.y_low,
-                                                        self.fade_color(Color.purple,0.5),
-                                                        upper_layer,
-                                                        max(treatment[0], 0),
-                                                        min(treatment[0] + math.ceil(treatment[1]/5), self.matrix_size - 1)
-                                                        ))
+        pixelMatrix.draw_horizontal_line(self.GLUCOSE_LOW, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
+        pixelMatrix.draw_horizontal_line(self.GLUCOSE_HIGHT, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
 
         for id,iob in enumerate(self.iob_list):
-            pixels.extend(self.draw_vertical_line(self.matrix_size - id - 1,
-                                                self.fade_color(Color.blue, 0.05),
-                                                pixels,
-                                                self.y_high + 1,
-                                                round(iob)))
+            pixelMatrix.draw_vertical_line(self.matrix_size - id - 1,
+                                            self.fade_color(Color.blue, 0.05),
+                                            self.GLUCOSE_HIGHT,
+                                            round(iob))
 
-        pixels.extend(self.draw_horizontal_line(self.y_low, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
-        pixels.extend(self.draw_horizontal_line(self.y_high, self.fade_color(Color.white,0.1), pixels, 0, self.matrix_size - 1))
+        for treatment in carbs_with_x_values:
+            pixelMatrix.draw_vertical_line(treatment[0],
+                                            self.fade_color(Color.orange, 0.2),
+                                            self.GLUCOSE_HIGHT,
+                                            treatment[1],
+                                            True)
 
-        self.reset_formmated_jsons()
-        return pixels
+        for treatment in bolus_with_x_values:
+            pixelMatrix.draw_vertical_line(treatment[0],
+                                            self.fade_color(Color.blue, 0.3),
+                                            self.GLUCOSE_HIGHT,
+                                            treatment[1],
+                                            True)
+
+        for treatment in exercises_with_x_values:
+            pixelMatrix.draw_horizontal_line(self.GLUCOSE_HIGHT,
+                                                self.fade_color(Color.purple, 0.5),
+                                                treatment[0],
+                                                math.ceil(treatment[1]/5))
+
+            pixelMatrix.draw_horizontal_line(self.GLUCOSE_LOW,
+                                                self.fade_color(Color.purple, 0.5),
+                                                treatment[0],
+                                                math.ceil(treatment[1]/5))
+
+        pixelMatrix.display_entries(self.formmated_entries)
+
+        return pixelMatrix
 
     def extract_first_and_second_value(self):
         first_value_saved_flag = False
-        for item in self.formmated_entries_json:
+        for item in self.formmated_entries:
             if item.type == EntrieEnum.SGV and not first_value_saved_flag:
                 self.first_value = item.glucose
                 first_value_saved_flag = True
@@ -266,16 +240,16 @@ class GlucoseMatrixDisplay:
             treatment_date = datetime.datetime.strptime(item.get("dateString"), "%Y-%m-%dT%H:%M:%S.%fZ")
             treatment_date += datetime.timedelta(minutes= -180)
             if item.get("type") == EntrieEnum.SGV:
-                self.formmated_entries_json.append(GlucoseItem(EntrieEnum.SGV,
+                self.formmated_entries.append(GlucoseItem(EntrieEnum.SGV,
                                                   item.get(EntrieEnum.SGV),
                                                   treatment_date,
                                                   item.get("direction")))
             elif item.get("type") == EntrieEnum.MBG:
-                self.formmated_entries_json.append(GlucoseItem(EntrieEnum.MBG,
+                self.formmated_entries.append(GlucoseItem(EntrieEnum.MBG,
                                                   item.get(EntrieEnum.MBG),
                                                   treatment_date))
             
-            if len(self.formmated_entries_json) == self.matrix_size:
+            if len(self.formmated_entries) == self.matrix_size:
                 break
 
     def generate_list_from_treatments_json(self):
@@ -286,175 +260,29 @@ class GlucoseMatrixDisplay:
             if item.get("eventType") == TreatmentEnum.CARBS:
                 if not item.get("carbs"):
                     continue
-                self.formmated_treatments_json.append(TreatmentItem(item.get("_id"),
+                self.formmated_treatments.append(TreatmentItem(item.get("_id"),
                                                                     TreatmentEnum.CARBS,
                                                                     time,
                                                                     item.get("carbs")))
             elif item.get("eventType") == TreatmentEnum.BOLUS:
                 if not item.get("insulin"):
                     continue
-                self.formmated_treatments_json.append(TreatmentItem(item.get("_id"),
+                self.formmated_treatments.append(TreatmentItem(item.get("_id"),
                                                                     TreatmentEnum.BOLUS,
                                                                     time,
                                                                     item.get("insulin")))
             elif item.get("eventType") == TreatmentEnum.EXERCISE:
                 if not item.get("duration"):
                     continue
-                self.formmated_treatments_json.append(ExerciseItem(TreatmentEnum.EXERCISE,
+                self.formmated_treatments.append(ExerciseItem(TreatmentEnum.EXERCISE,
                                                                     time,
                                                                     int(item.get("duration"))))
-
-    def paint_around_value(self, x, y, color, painted_pixels):
-        surrounding_pixels = []
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx == 0 and dy == 0:
-                    continue
-                new_x = x + dx
-                new_y = y + dy
-                already_paintted = False
-                for x_old,y_old,_,_,_ in painted_pixels:
-                    if x_old == new_x and y_old == new_y:
-                        already_paintted = True
-                        break
-                if 0 <= new_x < self.matrix_size and 5 <= new_y < self.matrix_size and not already_paintted:
-                    surrounding_pixels.append([new_x, new_y, *self.fade_color(color, .2)])
-        return surrounding_pixels
-
-    def determine_color(self, glucose, entry_type=EntrieEnum.SGV):
-        if entry_type == EntrieEnum.MBG:
-            return Color.white
-
-        if glucose < self.GLUCOSE_LOW - 10:
-            return self.interpolate_color(Color.red, Color.yellow, glucose, self.get_min_sgv(), self.GLUCOSE_LOW - 10,)
-        if glucose > self.GLUCOSE_HIGH + 10:
-            return self.interpolate_color(Color.yellow, Color.red, glucose, self.GLUCOSE_HIGH + 10, self.get_max_sgv())
-        elif glucose <= self.GLUCOSE_LOW or glucose >= self.GLUCOSE_HIGH:
-            return Color.yellow
-        else:
-            return Color.green
-
-    def interpolate_color(self, color1: List[int], color2: List[int], value: float, min_value: float, max_value: float) -> List[int]:
-        if value < min_value:
-            value = min_value
-        elif value > max_value:
-            value = max_value
-
-        t = (value - min_value) / (max_value - min_value)
-
-        r = int(color1[0] + t * (color2[0] - color1[0]))
-        g = int(color1[1] + t * (color2[1] - color1[1]))
-        b = int(color1[2] + t * (color2[2] - color1[2]))
-
-        return [r, g, b]
-
-
-    def get_max_sgv(self):
-        max_sgv = 0
-        for entry in self.formmated_entries_json:
-            max_sgv = max(max_sgv, entry.glucose)
-
-        return max_sgv
-
-    def get_min_sgv(self):
-        min_sgv = 100000
-        for entry in self.formmated_entries_json:
-            min_sgv = min(min_sgv, entry.glucose)
-
-        return min_sgv
 
     def set_glucose_difference(self):
         self.glucose_difference = int(self.first_value) - int(self.second_value)
 
     def get_glucose_difference_signal(self):
         return '-' if self.glucose_difference < 0 else '+'
-
-    def draw_horizontal_line(self, y, color, old_pixels, first_pixel, last_pixel):
-        pixels = []
-        for x in range(first_pixel, last_pixel + 1):
-            already_paintted = False
-            for x_old, y_old, _, _, _ in old_pixels:
-                if x_old == x and y_old == y:
-                    already_paintted = True
-                    break
-            if not already_paintted:
-                pixels.append([x, y, *color])
-        return pixels
-
-    def draw_vertical_line(self, x, color, old_pixels, low_y, height, enable_five=False):
-        pixels = []
-        if low_y + height < self.matrix_size:
-            y_max = low_y + height
-        else:
-            y_max = self.matrix_size
-        for y in list(range(low_y, y_max)):
-            already_paintted = False
-            for x_old,y_old,_,_,_ in old_pixels:
-                if x_old == x and y_old == y:
-                    already_paintted = True
-                    break
-            temp_color = color
-            if enable_five:
-                if not self.is_five_apart(low_y, y):
-                    temp_color = self.fade_color(color, 0.5)
-            if not already_paintted: pixels.append([ x, y, *temp_color])
-        return pixels
-
-    def draw_pattern(self, color, matrix, pattern, position, scale=1):
-        start_x, start_y = position
-        for i, row in enumerate(pattern):
-            for j, value in enumerate(row):
-                if value:
-                    x, y = start_x + j * scale, start_y + i * scale
-                    if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
-                        matrix[x, y] = color
-
-    def is_five_apart(self, init, current):
-        return (current - init + 1) % 5 == 0
-
-    def matrix_to_pixel_list(self, matrix):
-        pixel_list = []
-        for x in range(self.matrix_size):
-            for y in range(self.matrix_size):
-                if not np.all(matrix[x, y] == 0):
-                    pixel_list.append((x, y, *matrix[x, y]))
-        return pixel_list
-
-    def paint_background(self):
-        return f" --fullscreen-color {round(self.color[0]*0.1)}-{round(self.color[1]*0.1)}-{round(self.color[2]*0.1)}"
-
-    def display_glucose_on_matrix(self, glucose_value):
-        matrix = np.zeros((self.matrix_size, self.matrix_size, 3), dtype=int)
-        glucose_str = str(glucose_value)
-        color = Color.white
-        digit_width, digit_height, spacing = 3, 5, 1
-        digits_width = len(glucose_str) * (digit_width + spacing)
-
-        arrow_pattern = arrow_patterns().get(self.arrow, np.zeros((5, 5)))
-        arrow_width = arrow_pattern.shape[1] + spacing
-        signal_width = 3 + spacing
-
-        glucose_diff_str = str(abs(self.glucose_difference))
-        glucose_diff_width = len(glucose_diff_str) * (digit_width + spacing)
-        total_width = digits_width + arrow_width + signal_width + glucose_diff_width
-        start_x = (self.matrix_size - total_width) // 2
-        y_position = (self.matrix_size - digit_height) // 2 - 13
-
-        x_position = start_x
-        for digit in glucose_str:
-            self.draw_pattern(color, matrix, digit_patterns()[digit], (x_position, y_position))
-            x_position += digit_width + spacing
-
-        self.draw_pattern(color, matrix, arrow_pattern, (x_position, y_position))
-        x_position += arrow_width
-        self.draw_pattern(color, matrix, signal_patterns()[self.get_glucose_difference_signal()], (x_position, y_position))
-        x_position += signal_width
-
-        for digit in glucose_diff_str:
-            self.draw_pattern(color, matrix, digit_patterns()[digit], (x_position, y_position))
-            x_position += digit_width + spacing
-
-        return self.matrix_to_pixel_list(matrix)
 
     def is_old_data(self, json):
         created_at_str = json.get('sysTime')
@@ -492,31 +320,23 @@ class GlucoseMatrixDisplay:
 
     def calculate_time_difference(self):
         current_time = datetime.datetime.now()
-        time_difference = current_time - self.formmated_entries_json[0].date
+        time_difference = current_time - self.formmated_entries[0].date
         minutes_difference = time_difference.total_seconds() // 60
         return int(minutes_difference)
 
-    def get_brightness_on_hour(self, timezone_str="America/Recife"):
-        local_tz = pytz.timezone(timezone_str)
-        current_time = datetime.datetime.now(local_tz)
-        current_hour = current_time.hour
+    def get_treatments_x_values(self):
+        bolus_with_x_values: List[TreatmentItem] = []
+        carbs_with_x_values: List[TreatmentItem] = []
+        exercises_with_x_values: List[TreatmentItem] = []
 
-        if 21 <= current_hour or current_hour < 6:
-            return self.night_brightness
-        else:
-            return 1.0
-
-    def get_treatment_x_values(self):
-        treatment_x_values = []
-
-        if not self.formmated_entries_json:
+        if not self.formmated_entries:
             logging.warning("No glucose entries available.")
-            return treatment_x_values
+            return bolus_with_x_values,carbs_with_x_values,exercises_with_x_values
 
-        newer_entry_time = self.formmated_entries_json[0].date
-        older_entry_time = self.formmated_entries_json[-1].date
+        newer_entry_time = self.formmated_entries[0].date
+        older_entry_time = self.formmated_entries[-1].date
 
-        for treatment in self.formmated_treatments_json:
+        for treatment in self.formmated_treatments:
             if treatment.type == TreatmentEnum.EXERCISE:
                 if treatment.date + datetime.timedelta(minutes=treatment.amount) < older_entry_time  or treatment.date > newer_entry_time:
                     continue
@@ -525,8 +345,8 @@ class GlucoseMatrixDisplay:
                     continue
 
             # Calculate the x position based on the closest glucose entry
-            closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
-            x_value = self.formmated_entries_json.index(closest_entry)
+            closest_entry = min(self.formmated_entries, key=lambda entry: abs(treatment.date - entry.date))
+            x_value = self.formmated_entries.index(closest_entry)
 
             if treatment.type == TreatmentEnum.EXERCISE:
                 # Calculate time elapsed in minutes since the treatment started
@@ -539,19 +359,24 @@ class GlucoseMatrixDisplay:
                     # Calculate how much treatment time is remaining from the current position
                     discount_time = 0
 
-                treatment_x_values.append((self.matrix_size - x_value - 1,
-                                        math.ceil(treatment.amount - discount_time),  # Pixels to paint
-                                        treatment.type))
+                exercises_with_x_values.append((self.matrix_size - x_value - 1,
+                                                math.ceil(treatment.amount - discount_time),
+                                                treatment.type))
 
             elif treatment.type in (TreatmentEnum.BOLUS, TreatmentEnum.CARBS):
                 # Ensure the treatment falls within the time range covered by glucose entries
                 if older_entry_time <= treatment.date <= newer_entry_time:
-                    treatment_x_values.append((self.matrix_size - x_value - 1,
-                                            treatment.amount,  # Amount is directly used
-                                            treatment.type))
+                    if treatment.type == TreatmentEnum.BOLUS:
+                        bolus_with_x_values.append((self.matrix_size - x_value - 1,
+                                                    treatment.amount,
+                                                    treatment.type))
+                    else:
+                        carbs_with_x_values.append((self.matrix_size - x_value - 1,
+                                                    treatment.amount,
+                                                    treatment.type))
 
-        return treatment_x_values
-    
+        return bolus_with_x_values, carbs_with_x_values, exercises_with_x_values
+
     def get_iob(self):
         iob_value = self.json_iob.get("iob", {}).get("iob", None)
         if iob_value == None:
@@ -559,7 +384,7 @@ class GlucoseMatrixDisplay:
         else:
             self.iob_list.insert(0,iob_value)
         return self.iob_list[:self.matrix_size]
-        
+
 
 if __name__ == "__main__":
     GlucoseMatrixDisplay().run_command_in_loop()
