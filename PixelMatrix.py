@@ -36,8 +36,8 @@ class PixelMatrix:
     def get_pixel(self, x: int, y: int) -> List[int]:
         return self.pixels[y][x]
 
-    def paint_background(self, color=(0, 0, 0)):
-        for y in range(self.height):
+    def paint_background(self, color):
+        for y in range(self.matrix_size):
             for x in range(self.matrix_size):
                 self.pixels[y][x] = color
 
@@ -203,6 +203,3 @@ class PixelMatrix:
         for item in color:
             fadded_color.append(math.ceil(item * percentil))
         return fadded_color
-
-    def paint_background(self) -> str:
-        return f" --fullscreen-color {round(self.color[0]*0.1)}-{round(self.color[1]*0.1)}-{round(self.color[2]*0.1)}"
