@@ -42,7 +42,7 @@ class PixelMatrix:
                 self.pixels[y][x] = color
 
     def draw_vertical_line(self, x: int, color: List[int], glucose: int, height: int, enable_five=False):
-        start_y = self.glucose_to_y_coordinate(glucose) + 1
+        start_y = self.glucose_to_y_coordinate(glucose) + 2
         if start_y + height < self.matrix_size:
             y_max = start_y + height
         else:
