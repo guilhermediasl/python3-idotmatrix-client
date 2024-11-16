@@ -184,7 +184,7 @@ class GlucoseMatrixDisplay:
         pixelMatrix.set_arrow(self.arrow)
         pixelMatrix.set_glucose_difference(self.glucose_difference)
 
-        pixelMatrix.paint_background(self.fade_color(Color.white, 0.05))
+        pixelMatrix.paint_background(self.fade_color(Color.white, 0.01))
         pixelMatrix.display_glucose_on_matrix(self.first_value)
 
         pixelMatrix.draw_horizontal_line(self.GLUCOSE_LOW, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
