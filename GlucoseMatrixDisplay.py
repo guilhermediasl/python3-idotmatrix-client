@@ -513,38 +513,42 @@ class GlucoseMatrixDisplay:
             logging.warning("No glucose entries available.")
             return treatment_x_values
 
-        first_entry_time = self.formmated_entries_json[0].date
-        last_entry_time = self.formmated_entries_json[-1].date
+        newer_entry_time = self.formmated_entries_json[0].date
+        older_entry_time = self.formmated_entries_json[-1].date
 
         for treatment in self.formmated_treatments_json:
             if treatment.type == TreatmentEnum.EXERCISE:
-                # Calculate the time that has passed since the treatment started
-                time_elapsed = (last_entry_time - treatment.date).total_seconds() / 60  # in minutes
-                if first_entry_time > treatment.date:
-                    remaining_amount = 0.00001
-                else:
-                    remaining_amount = max(0, treatment.amount - time_elapsed)  # Adjust treatment.amount
-                
-                if remaining_amount <= 0:
-                    continue  # Skip if no time remains
-
+                if treatment.date + datetime.timedelta(minutes=treatment.amount) < older_entry_time  or treatment.date > newer_entry_time:
+                    continue
             else:
-                if treatment.date > first_entry_time or treatment.date < last_entry_time:
+                if treatment.date < older_entry_time  or treatment.date > newer_entry_time:
                     continue
 
-            # Find the closest glucose entry to this treatment
-            if treatment.type in (TreatmentEnum.BOLUS, TreatmentEnum.CARBS):
-                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
-                x_value = self.formmated_entries_json.index(closest_entry)
+            # Calculate the x position based on the closest glucose entry
+            closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
+            x_value = self.formmated_entries_json.index(closest_entry)
+
+            if treatment.type == TreatmentEnum.EXERCISE:
+                # Calculate time elapsed in minutes since the treatment started
+                time_elapsed = (older_entry_time - treatment.date).total_seconds() / 60  # in minutes
+
+                if time_elapsed > 0:
+                    # If treatment started before the first entry, calculate remaining time
+                    discount_time = treatment.amount - time_elapsed
+                else:
+                    # Calculate how much treatment time is remaining from the current position
+                    discount_time = 0
+
                 treatment_x_values.append((self.matrix_size - x_value - 1,
-                                        treatment.amount,
-                                        treatment.type))  # x-value and treatment amount for height
-            elif treatment.type == TreatmentEnum.EXERCISE:
-                closest_entry = min(self.formmated_entries_json, key=lambda entry: abs(treatment.date - entry.date))
-                x_value = self.formmated_entries_json.index(closest_entry)
-                treatment_x_values.append((self.matrix_size - x_value - 1,
-                                        int(treatment.amount - remaining_amount),  # Adjusted amount
-                                        treatment.type))  # x-value and adjusted treatment amount for height
+                                        math.ceil(treatment.amount - discount_time),  # Pixels to paint
+                                        treatment.type))
+
+            elif treatment.type in (TreatmentEnum.BOLUS, TreatmentEnum.CARBS):
+                # Ensure the treatment falls within the time range covered by glucose entries
+                if older_entry_time <= treatment.date <= newer_entry_time:
+                    treatment_x_values.append((self.matrix_size - x_value - 1,
+                                            treatment.amount,  # Amount is directly used
+                                            treatment.type))
 
         return treatment_x_values
     
