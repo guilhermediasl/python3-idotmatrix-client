@@ -150,9 +150,13 @@ class PixelMatrix:
     def generate_timer_gif(self, output_file=os.path.join("temp", "output_giff.gif")):
         frame_files = []
         frame_files.append(os.path.join("temp", "frame-0.png"))
-        self.generate_image("temp/frame-0.png")
         for index in range(1,6):
-            self.set_pixel(31, index - 1, *Color.purple)
+            self.set_pixel(0, index - 1, *self.fade_color(Color.white, 0.1))
+
+        self.generate_image("temp/frame-0.png")
+
+        for index in range(1,6):
+            self.set_pixel(0, index - 1, *Color.white)
             frame_filename = os.path.join("temp", f"frame-{index}.png")
             self.generate_image(frame_filename)
             frame_files.append(frame_filename)
