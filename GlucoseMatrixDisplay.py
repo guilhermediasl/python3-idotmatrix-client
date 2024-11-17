@@ -1,4 +1,5 @@
 import math
+import os
 import subprocess
 import cv2
 import numpy as np
@@ -54,7 +55,7 @@ class GlucoseMatrixDisplay:
             logging.error(f"Error loading configuration file: {e}")
             raise Exception(f"Error loading configuration file: {e}")
 
-    def update_glucose_command(self, image_path="./output_image.png"):
+    def update_glucose_command(self, image_path=os.path.join("temp", "output_giff.gif")):
         logging.info("Updating glucose command.")
         self.json_entries_data = self.fetch_json_data(self.url_entries)
         self.json_treatments_data = self.fetch_json_data(self.url_treatments)
@@ -63,13 +64,13 @@ class GlucoseMatrixDisplay:
         if self.json_entries_data:
             self.parse_matrix_values()
             self.pixelMatrix = self.build_pixel_matrix()
-            self.pixelMatrix.generate_image()
+            self.pixelMatrix.generate_timer_gif()
             self.reset_formmated_jsons()
 
             if self.os == 'windows':
-                self.command = f"run_in_venv.bat --address {self.ip} --image true --set-image {image_path}"
+                self.command = f"run_in_venv.bat --address {self.ip} --set-gif {image_path}"
             else:
-                self.command = f"./run_in_venv.sh --address {self.ip} --image true --set-image {image_path}"
+                self.command = f"./run_in_venv.sh --address {self.ip} --set-gif {image_path}"
         logging.info(f"Command updated: {self.command}")
 
     def run_command(self):

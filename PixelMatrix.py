@@ -5,6 +5,8 @@ from typing import List
 import numpy as np
 import png
 import pytz
+from PIL import Image
+import os
 from patterns import digit_patterns, arrow_patterns, signal_patterns
 from util import Color, EntrieEnum, GlucoseItem, TreatmentEnum
 
@@ -134,6 +136,26 @@ class PixelMatrix:
             writer = png.Writer(self.matrix_size, self.matrix_size, greyscale=False)
             writer.write(f, png_matrix)
         logging.info(f"Image generated and saved as {output_file}.")
+        
+    def generate_timer_gif(self, output_file=os.path.join("temp", "output_giff.gif")):
+        frame_files = []
+        frame_files.append(os.path.join("temp", "frame-0.png"))
+        self.generate_image("temp/frame-0.png")
+        color = (self.fade_color(Color.purple), self.get_brightness_on_hour())
+        for index in range(1,6):
+            self.set_pixel(31, index - 1, *color)
+            frame_filename = os.path.join("temp", f"frame-{index}.png")
+            self.generate_image(frame_filename)
+            frame_files.append(frame_filename)
+
+        frames = [Image.open(frame) for frame in frame_files]
+        frames[0].save(
+            output_file,
+            save_all=True,
+            append_images=frames[0:],
+            duration=60000,  # 1 minute in milliseconds
+            loop=1
+        )
 
     def glucose_to_y_coordinate(self, glucose: int) -> int:
         glucose = max(self.min_glucose, min(glucose, self.max_glucose))
@@ -147,7 +169,7 @@ class PixelMatrix:
         current_hour = current_time.hour
 
         if 21 <= current_hour or current_hour < 6:
-            return self.night_brightness
+            return 0.1
         else:
             return 1.0
         
