@@ -141,7 +141,7 @@ class PixelMatrix:
         frame_files = []
         frame_files.append(os.path.join("temp", "frame-0.png"))
         self.generate_image("temp/frame-0.png")
-        color = (self.fade_color(Color.purple), self.get_brightness_on_hour())
+        color = self.fade_color(Color.purple, self.get_brightness_on_hour())
         for index in range(1,6):
             self.set_pixel(31, index - 1, *color)
             frame_filename = os.path.join("temp", f"frame-{index}.png")
