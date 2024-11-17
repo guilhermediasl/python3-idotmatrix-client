@@ -117,20 +117,30 @@ class PixelMatrix:
             y = self.glucose_to_y_coordinate(entry.glucose)
             r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
             self.set_pixel(x, y, r, g, b)
-            
+
+    def get_low_brightness_pixels(self):
+        brightness = self.get_brightness_on_hour()
+        low_brightness_pixels = [[[0, 0, 0] for _ in range(self.matrix_size)] for _ in range(self.matrix_size)]
+
+        for x in range(0, self.matrix_size - 1):
+            for y in range(0, self.matrix_size - 1):
+                low_brightness_pixels[y][x] = self.fade_color(self.get_pixel(x, y), brightness)
+
+        return low_brightness_pixels
+
     def generate_image(self, output_file="output_image.png"):
         logging.info("Generating image.")
         brightness = self.get_brightness_on_hour()
 
         if brightness != 1.0:
-            for x in range(0, self.matrix_size - 1):
-                for y in range(0, self.matrix_size - 1):
-                    r, g, b = self.get_pixel(x, y)
-                    self.set_pixel(x, y, *self.fade_color((r, g, b), brightness))
-
-        png_matrix = []
-        for row in self.pixels:
-            png_matrix.append([val for pixel in row for val in pixel])
+            low_brightness_pixels = self.get_low_brightness_pixels()
+            png_matrix = []
+            for row in low_brightness_pixels:
+                png_matrix.append([val for pixel in row for val in pixel])
+        else:
+            png_matrix = []
+            for row in self.pixels:
+                png_matrix.append([val for pixel in row for val in pixel])
 
         with open(output_file, "wb") as f:
             writer = png.Writer(self.matrix_size, self.matrix_size, greyscale=False)
@@ -141,9 +151,8 @@ class PixelMatrix:
         frame_files = []
         frame_files.append(os.path.join("temp", "frame-0.png"))
         self.generate_image("temp/frame-0.png")
-        color = self.fade_color(Color.purple, self.get_brightness_on_hour())
         for index in range(1,6):
-            self.set_pixel(31, index - 1, *color)
+            self.set_pixel(31, index - 1, *Color.purple)
             frame_filename = os.path.join("temp", f"frame-{index}.png")
             self.generate_image(frame_filename)
             frame_files.append(frame_filename)
