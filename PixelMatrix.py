@@ -122,8 +122,8 @@ class PixelMatrix:
         brightness = self.get_brightness_on_hour()
         low_brightness_pixels = [[[0, 0, 0] for _ in range(self.matrix_size)] for _ in range(self.matrix_size)]
 
-        for x in range(0, self.matrix_size - 1):
-            for y in range(0, self.matrix_size - 1):
+        for x in range(1, self.matrix_size):
+            for y in range(1, self.matrix_size):
                 low_brightness_pixels[y][x] = self.fade_color(self.get_pixel(x, y), brightness)
 
         return low_brightness_pixels
