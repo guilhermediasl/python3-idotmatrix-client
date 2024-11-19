@@ -81,7 +81,7 @@ class PixelMatrix:
         start_x = (self.matrix_size - total_width) // 2
         y_position = (self.matrix_size - digit_height) // 2 - 13
 
-        x_position = start_x
+        x_position = start_x + 2
         for digit in glucose_str:
             digit_pattern = digit_patterns()[digit]
             for i, row in enumerate(digit_pattern):
