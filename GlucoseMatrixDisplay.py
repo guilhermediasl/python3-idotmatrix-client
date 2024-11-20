@@ -33,6 +33,7 @@ class GlucoseMatrixDisplay:
         self.GLUCOSE_HIGHT = self.config.get('high bondary glucose')
         self.os = self.config.get('os', 'linux').lower()
         self.image_out = self.config.get('image out', 'led matrix')
+        self.output_type = self.config.get("output type")
         self.night_brightness = float(self.config.get('night_brightness', 0.3))
         self.arrow = ''
         self.glucose_difference = 0
@@ -64,19 +65,26 @@ class GlucoseMatrixDisplay:
         if self.json_entries_data:
             self.parse_matrix_values()
             self.pixelMatrix = self.build_pixel_matrix()
-            self.pixelMatrix.generate_timer_gif()
+            if self.output_type == "image":
+                output_path = os.path.join("temp", "output_image.png")
+                self.pixelMatrix.generate_image(output_path)
+                type_comand = "--image true --set-image"
+            else:
+                self.pixelMatrix.generate_timer_gif()
+                output_path = os.path.join("temp", "output_gif.gif")
+                type_comand = "--set-gif"
             self.reset_formmated_jsons()
 
             if self.os == 'windows':
-                self.command = f"run_in_venv.bat --address {self.ip} --set-gif {image_path}"
+                self.command = f"run_in_venv.bat --address {self.ip} {type_comand} {output_path}"
             else:
-                self.command = f"./run_in_venv.sh --address {self.ip} --set-gif {image_path}"
+                self.command = f"./run_in_venv.sh --address {self.ip} {type_comand} {output_path}"
         logging.info(f"Command updated: {self.command}")
 
     def run_command(self):
         logging.info(f"Running command: {self.command}")
         if self.image_out != "led matrix":
-            img = cv2.imread('output_image.png')
+            img = cv2.imread(os.path.join("temp", "output_image.png"))
             bright_img = cv2.add(img, np.ones(img.shape, dtype="uint8") * 50)
 
             # Concatenate images horizontally
