@@ -161,3 +161,4 @@ cython_debug/
 config.json
 output_image.png
 temp/
+config.json
