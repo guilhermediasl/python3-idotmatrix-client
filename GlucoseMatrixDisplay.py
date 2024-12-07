@@ -43,7 +43,7 @@ class GlucoseMatrixDisplay:
         self.formmated_treatments = []
         self.iob_list = []
         self.newer_id = None
-        self.command = None
+        self.command = ''
         if self.image_out == "led matrix": self.unblock_bluetooth()
 
     def load_config(self, config_path):
