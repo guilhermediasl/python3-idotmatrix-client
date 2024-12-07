@@ -57,7 +57,7 @@ class GlucoseMatrixDisplay:
             logging.error(f"Error loading configuration file: {e}")
             raise Exception(f"Error loading configuration file: {e}")
 
-    def update_glucose_command(self, image_path):
+    def update_glucose_command(self, image_path=None):
         logging.info("Updating glucose command.")
         self.json_entries_data = self.fetch_json_data(self.url_entries)
         self.json_treatments_data = self.fetch_json_data(self.url_treatments)
