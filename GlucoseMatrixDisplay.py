@@ -56,7 +56,7 @@ class GlucoseMatrixDisplay:
             logging.error(f"Error loading configuration file: {e}")
             raise Exception(f"Error loading configuration file: {e}")
 
-    def update_glucose_command(self, image_path=os.path.join("temp", "output_gif.gif")):
+    def update_glucose_command(self, image_path):
         logging.info("Updating glucose command.")
         self.json_entries_data = self.fetch_json_data(self.url_entries)
         self.json_treatments_data = self.fetch_json_data(self.url_treatments)
@@ -65,7 +65,11 @@ class GlucoseMatrixDisplay:
         if self.json_entries_data:
             self.parse_matrix_values()
             self.pixelMatrix = self.build_pixel_matrix()
-            if self.output_type == "image":
+
+            if image_path:
+                output_path = image_path
+                type_comand = "--image true --set-image"
+            elif self.output_type == "image":
                 output_path = os.path.join("temp", "output_image.png")
                 self.pixelMatrix.generate_image(output_path)
                 type_comand = "--image true --set-image"
@@ -119,7 +123,7 @@ class GlucoseMatrixDisplay:
                 ping_json = self.fetch_json_data(self.url_ping_entries)[0]
                 if not ping_json or self.is_old_data(ping_json) and "./images/nocgmdata.png" not in self.command:
                     logging.info("Old or missing data detected, updating to no data image.")
-                    self.update_glucose_command("./images/nocgmdata.png")
+                    self.update_glucose_command(os.path.join('images', 'nocgmdata.png'))
                     self.run_command()
                 elif ping_json.get("_id") != self.newer_id:
                     logging.info("New glucose data detected, updating display.")
