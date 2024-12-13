@@ -207,7 +207,7 @@ class GlucoseMatrixDisplay:
 
         for id,iob in enumerate(self.iob_list):
             fractional_iob, integer_iob = math.modf(iob)
-            fractional_iob = int(fractional_iob)
+            integer_iob = int(integer_iob)
 
             pixelMatrix.draw_vertical_line(self.matrix_size - id - 1,
                                             self.fade_color(Color.blue, 0.05),
