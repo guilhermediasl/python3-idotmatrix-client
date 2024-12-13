@@ -47,7 +47,7 @@ class PixelMatrix:
         start_y = self.glucose_to_y_coordinate(glucose_start) + 2
         y = start_y + y
         if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
-            interpolated_color = self.interpolate_color(color, Color.black, percentil, 0, 1)
+            interpolated_color = self.interpolate_color(Color.black, color, percentil, 0, 1)
             self.pixels[y][x] = interpolated_color
 
     def draw_vertical_line(self, x: int, color: List[int], glucose: int, height: int, enable_five=False):
@@ -206,7 +206,7 @@ class PixelMatrix:
         else:
             return Color.green
 
-    def interpolate_color(self, color1: List[int], color2: List[int], value: int, min_value: int, max_value: int) -> List[int]:
+    def interpolate_color(self, low_color: List[int], high_color: List[int], value: int, min_value: int, max_value: int) -> List[int]:
         if value < min_value:
             value = min_value
         elif value > max_value:
@@ -214,9 +214,9 @@ class PixelMatrix:
 
         t = (value - min_value) / (max_value - min_value)
 
-        r = int(color1[0] + t * (color2[0] - color1[0]))
-        g = int(color1[1] + t * (color2[1] - color1[1]))
-        b = int(color1[2] + t * (color2[2] - color1[2]))
+        r = int(low_color[0] + t * (high_color[0] - low_color[0]))
+        g = int(low_color[1] + t * (high_color[1] - low_color[1]))
+        b = int(low_color[2] + t * (high_color[2] - low_color[2]))
 
         return [r, g, b]
 
