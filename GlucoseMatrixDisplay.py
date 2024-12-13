@@ -214,7 +214,7 @@ class GlucoseMatrixDisplay:
                                             self.GLUCOSE_HIGHT,
                                             integer_iob)
             
-            if fractional_iob >= 0.1: continue
+            if fractional_iob <= 0.1: continue
             
             pixelMatrix.set_interpoleted_pixel(self.matrix_size - id - 1,
                                                self.GLUCOSE_HIGHT + integer_iob,
