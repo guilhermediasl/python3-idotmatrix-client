@@ -17,6 +17,7 @@ class Color:
     white  = (230, 170, 80)
     blue   = (40, 150, 125)
     orange = (245, 70, 0)
+    black  = (0,0,0)
 
 class GlucoseItem:
     def __init__(self, type: EntrieEnum, glucose: int, date: datetime, direction: str = None):
