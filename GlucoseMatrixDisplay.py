@@ -206,10 +206,19 @@ class GlucoseMatrixDisplay:
         pixelMatrix.draw_horizontal_line(self.GLUCOSE_HIGHT, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
 
         for id,iob in enumerate(self.iob_list):
+            fractional_iob, integer_iob = math.modf(iob)
+
             pixelMatrix.draw_vertical_line(self.matrix_size - id - 1,
                                             self.fade_color(Color.blue, 0.05),
                                             self.GLUCOSE_HIGHT,
-                                            round(iob))
+                                            integer_iob)
+            
+            if fractional_iob >= 0.1: continue
+            
+            pixelMatrix.set_interpoleted_pixel(self.matrix_size - id - 1,
+                                               self.GLUCOSE_HIGHT + integer_iob,
+                                               self.fade_color(Color.blue, 0.05),
+                                               fractional_iob)
 
         for treatment in carbs_with_x_values:
             pixelMatrix.draw_vertical_line(treatment[0],

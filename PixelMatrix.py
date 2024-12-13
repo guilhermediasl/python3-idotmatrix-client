@@ -42,6 +42,11 @@ class PixelMatrix:
         for y in range(self.matrix_size):
             for x in range(self.matrix_size):
                 self.pixels[y][x] = color
+                
+    def set_interpoleted_pixel(self, x: int, y: int, color: List[int], percentil: float):
+        if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
+            interpolated_color = self.interpolate_color(color, Color.black, percentil, 0, 1)
+            self.pixels[y][x] = interpolated_color
 
     def draw_vertical_line(self, x: int, color: List[int], glucose: int, height: int, enable_five=False):
         start_y = self.glucose_to_y_coordinate(glucose) + 2
