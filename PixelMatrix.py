@@ -43,7 +43,9 @@ class PixelMatrix:
             for x in range(self.matrix_size):
                 self.pixels[y][x] = color
                 
-    def set_interpoleted_pixel(self, x: int, y: int, color: List[int], percentil: float):
+    def set_interpoleted_pixel(self, x: int, y: int, glucose_start:int, color: List[int], percentil: float):
+        start_y = self.glucose_to_y_coordinate(glucose_start) + 2
+        y = start_y + y
         if 0 <= x < self.matrix_size and 0 <= y < self.matrix_size:
             interpolated_color = self.interpolate_color(color, Color.black, percentil, 0, 1)
             self.pixels[y][x] = interpolated_color

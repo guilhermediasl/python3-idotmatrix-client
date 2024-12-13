@@ -217,7 +217,8 @@ class GlucoseMatrixDisplay:
             if fractional_iob <= 0.1: continue
             
             pixelMatrix.set_interpoleted_pixel(self.matrix_size - id - 1,
-                                               self.GLUCOSE_HIGHT + integer_iob,
+                                               self.GLUCOSE_HIGHT,
+                                               integer_iob,
                                                self.fade_color(Color.blue, 0.05),
                                                fractional_iob)
 
