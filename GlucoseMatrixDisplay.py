@@ -40,8 +40,8 @@ class GlucoseMatrixDisplay:
         self.first_value = None
         self.second_value = 0
         self.formmated_entries: List[GlucoseItem] = []
-        self.formmated_treatments = []
-        self.iob_list = []
+        self.formmated_treatments: List[TreatmentItem] = []
+        self.iob_list: List[float] = []
         self.newer_id = None
         self.command = ''
         if self.image_out == "led matrix": self.unblock_bluetooth()
@@ -193,6 +193,8 @@ class GlucoseMatrixDisplay:
 
     def build_pixel_matrix(self):
         bolus_with_x_values,carbs_with_x_values,exercises_with_x_values = self.get_treatments_x_values()
+        
+        exercise_indexes = self.get_exercises_index()
 
         pixelMatrix: PixelMatrix = PixelMatrix(self.matrix_size,self.min_glucose,self.max_glucose, self.GLUCOSE_LOW, self.GLUCOSE_HIGHT)
         pixelMatrix.set_formmated_entries(self.formmated_entries)
@@ -236,16 +238,10 @@ class GlucoseMatrixDisplay:
                                             treatment[1],
                                             True)
 
-        for treatment in exercises_with_x_values:
-            pixelMatrix.draw_horizontal_line(self.GLUCOSE_HIGHT,
-                                                self.fade_color(Color.purple, 0.5),
-                                                treatment[0],
-                                                math.ceil(treatment[1]/5))
 
-            pixelMatrix.draw_horizontal_line(self.GLUCOSE_LOW,
-                                                self.fade_color(Color.purple, 0.5),
-                                                treatment[0],
-                                                math.ceil(treatment[1]/5))
+        for exercise_index in exercise_indexes:
+            pixelMatrix.set_pixel(exercise_index, pixelMatrix.glucose_to_y_coordinate(self.GLUCOSE_HIGHT) + 1, *self.fade_color(Color.purple, 0.5))
+            pixelMatrix.set_pixel(exercise_index, pixelMatrix.glucose_to_y_coordinate(self.GLUCOSE_LOW) + 1, *self.fade_color(Color.purple, 0.5))
 
         pixelMatrix.display_entries(self.formmated_entries)
 
@@ -261,6 +257,21 @@ class GlucoseMatrixDisplay:
             if item.type == EntrieEnum.SGV:
                 self.second_value = item.glucose
                 break
+
+    def get_exercises_index(self) -> set[int]:
+        exercise_indexes = set()
+        for treatment in self.formmated_treatments:
+            if treatment.type != TreatmentEnum.EXERCISE:
+                continue
+
+            exercise_start = treatment.date
+            exercise_end = exercise_start + datetime.timedelta(minutes=treatment.amount)
+
+            for index, entry in enumerate(self.formmated_entries):
+                if exercise_start <= entry.date <= exercise_end:
+                    exercise_indexes.add(self.matrix_size - 1 - index)
+
+        return exercise_indexes
 
     def generate_list_from_entries_json(self):
         for item in self.json_entries_data:
