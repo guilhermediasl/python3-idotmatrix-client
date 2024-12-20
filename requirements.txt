@@ -1,4 +1,10 @@
-numpy
-requests
-os-sys
-jsonlib-python3
+Flask==3.1.0
+idotmatrix==0.0.8
+numpy==2.2.0
+opencv_python==4.10.0.84
+Pillow==11.0.0
+pypng==0.20220715.0
+PyQt5==5.15.11
+python-socketio==5.12.0
+pytz==2024.2
+Requests==2.32.3

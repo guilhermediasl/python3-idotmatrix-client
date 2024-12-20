@@ -7,7 +7,6 @@ import requests
 import time
 import json
 import datetime
-import pytz
 import logging
 from typing import List
 from http.client import RemoteDisconnected
@@ -17,7 +16,7 @@ from PixelMatrix import PixelMatrix
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class GlucoseMatrixDisplay:
-    def __init__(self, config_path='config.json', matrix_size=32, min_glucose=60, max_glucose=180):
+    def __init__(self, config_path=os.path.join('led_matrix_configurator', 'config.json'), matrix_size=32, min_glucose=60, max_glucose=180):
         self.matrix_size = matrix_size
         self.min_glucose = min_glucose
         self.max_glucose = max_glucose
