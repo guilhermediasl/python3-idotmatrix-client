@@ -10,12 +10,12 @@
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f9;
-            color: #333;
+            background-color: #282a36;
+            color: #f8f8f2;
         }
         header {
-            background-color: #4CAF50;
-            color: #fff;
+            background-color: #44475a;
+            color: #f8f8f2;
             padding: 1em 0;
             text-align: center;
         }
@@ -23,25 +23,28 @@
             padding: 1.5em;
             max-width: 800px;
             margin: 0 auto;
-            background: #fff;
+            background: #44475a;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
-        textarea {
+        pre {
             width: 100%;
             height: 300px;
             padding: 10px;
             font-family: monospace;
             font-size: 1rem;
-            border: 1px solid #ccc;
+            border: 1px solid #6272a4;
             border-radius: 4px;
-            background: #f9f9f9;
+            background: #282a36;
+            color: #f8f8f2;
             margin-bottom: 1em;
+            overflow: auto;
+            white-space: pre-wrap;
         }
         button {
             display: inline-block;
-            background: #4CAF50;
-            color: #fff;
+            background: #34b153;
+            color: #282a36;
             padding: 0.5em 1em;
             font-size: 1rem;
             border: none;
@@ -49,7 +52,7 @@
             cursor: pointer;
         }
         button:hover {
-            background: #45a049;
+            background: #185225;
         }
         section {
             margin-bottom: 2em;
@@ -57,17 +60,25 @@
         h1, h2 {
             text-align: center;
         }
-        pre {
-            padding: 10px;
-            background: #f9f9f9;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            overflow: auto;
-        }
         .button-group {
             display: flex;
             gap: 10px;
             justify-content: center;
+        }
+        .dracula .key {
+            color: #8be9fd;
+        }
+        .dracula .colon {
+            color: #ff79c6;
+        }
+        .dracula .value {
+            color: #bd93f9;
+        }
+        .dracula .string {
+            color: #f1fa8c;
+        }
+        .dracula .comma, .dracula .brace {
+            color: #f8f8f2;
         }
     </style>
 </head>
@@ -78,7 +89,7 @@
     <main>
         <section>
             <h2>Edit Configuration</h2>
-            <textarea id="configContent" placeholder="Loading configuration..."></textarea>
+            <pre id="configContent" class="dracula"></pre>
             <div class="button-group">
                 <button type="button" onclick="saveConfig()">Save Config</button>
                 <button type="button" onclick="reloadConfig()">Reload Config</button>
@@ -106,7 +117,8 @@
             fetch('/config')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById("configContent").value = JSON.stringify(data.config, null, 4);
+                    const jsonContent = JSON.stringify(data.config, null, 4);
+                    document.getElementById("configContent").innerHTML = applyDraculaTheme(jsonContent);
                 })
                 .catch(error => {
                     alert("Failed to load configuration: " + error.message);
@@ -118,7 +130,7 @@
 
         // Save config
         function saveConfig() {
-            const content = document.getElementById("configContent").value;
+            const content = document.getElementById("configContent").innerText;
             fetch('/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -159,20 +171,29 @@
 
         // Run application
         function runApplication() {
-    fetch('/run', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === "success") {
-                document.getElementById("runOutput").innerText = data.message;
-            } else {
-                document.getElementById("runOutput").innerText = "Error starting application: " + data.message;
-            }
-        })
-        .catch(error => {
-            document.getElementById("runOutput").innerText = "Network error: " + error.message;
-        });
-}
+            fetch('/run', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        document.getElementById("runOutput").innerText = data.message;
+                    } else {
+                        document.getElementById("runOutput").innerText = "Error starting application: " + data.message;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("runOutput").innerText = "Network error: " + error.message;
+                });
+        }
 
+        // Apply Dracula theme to JSON
+        function applyDraculaTheme(json) {
+            return json.replace(/("(.*?)")(\s*:\s*)("(.*?)"|[\d.]+)/g, (match, p1, p2, p3, p4) => {
+                const valueClass = /^"/.test(p4) ? 'string' : 'value';
+                return `<span class="key">${p1}</span><span class="colon">${p3}</span><span class="${valueClass}">${p4}</span>`;
+            }).replace(/([{}[\],])/g, (match) => {
+                return `<span class="brace">${match}</span>`;
+            });
+        }
     </script>
 </body>
 </html>
