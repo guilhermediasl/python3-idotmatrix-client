@@ -63,16 +63,22 @@ def get_config():
 @app.route("/save", methods=["POST"])
 def save_config():
     try:
-        new_config = request.json
-        with open(CONFIG_PATH, "w") as file:
-            json.dump(new_config, file, indent=4)
-        # Run the script after modifying the config
-        thread = Thread(target=run_script)
-        thread.start()
-        return jsonify({"status": "success", "message": "Config saved and script started!"})
+        config_data = request.get_json()
+        # Convert numeric strings to actual numbers
+        for key, value in config_data.items():
+            if value.isdigit():
+                config_data[key] = int(value)
+            else:
+                try:
+                    config_data[key] = float(value)
+                except ValueError:
+                    pass
+        with open(CONFIG_PATH, "w") as config_file:
+            json.dump(config_data, config_file, indent=4)
+        return jsonify({"message": "Config saved successfully!"})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
+        return jsonify({"message": str(e)}), 500
+    
 # Get the logs as JSON
 @app.route("/logs", methods=["GET"])
 def get_logs():
