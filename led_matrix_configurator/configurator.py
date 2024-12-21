@@ -79,11 +79,26 @@ def save_config():
     except Exception as e:
         return jsonify({"message": str(e)}), 500
     
+@app.route("/restart-service", methods=["POST"])
+def restart_service():
+    try:
+        result = subprocess.run(
+            ["sudo", "systemctl", "restart", "glucose_matrix.service"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            return jsonify({"message": "Service restarted successfully!"})
+        else:
+            return jsonify({"message": result.stderr}), 500
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+    
 # Get the logs as JSON
 @app.route("/logs", methods=["GET"])
 def get_logs():
     try:
-        max_lines = 50  # Define the maximum number of lines to show in the logs
+        max_lines = 100  # Define the maximum number of lines to show in the logs
         if os.path.exists(LOG_PATH):
             with open(LOG_PATH, "r") as file:
                 # Read only the last `max_lines` lines from the file

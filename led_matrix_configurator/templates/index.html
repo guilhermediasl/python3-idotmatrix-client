@@ -68,6 +68,15 @@
             gap: 10px;
             justify-content: center;
         }
+        pre {
+            background: #282a36;
+            color: #f8f8f2;
+            padding: 1em;
+            border-radius: 4px;
+            border: 1px solid #6272a4;
+            max-height: 300px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -85,7 +94,6 @@
         </section>
         <section>
             <h2>Application Logs</h2>
-            <button onclick="fetchLogs()">Refresh Logs</button>
             <pre id="logs">Loading logs...</pre>
         </section>
         <section>
@@ -141,10 +149,23 @@
             .then(response => response.json())
             .then(data => {
                 alert(data.message || "Config saved successfully!");
+                restartService();
             })
             .catch(error => {
                 alert("Failed to save configuration: " + error.message);
             });
+        }
+
+        // Restart service
+        function restartService() {
+            fetch('/restart-service', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || "Service restarted successfully!");
+                })
+                .catch(error => {
+                    alert("Failed to restart service: " + error.message);
+                });
         }
 
         // Fetch logs
@@ -158,6 +179,12 @@
                     document.getElementById("logs").innerText = "Error fetching logs: " + error.message;
                 });
         }
+
+        // Set interval to fetch logs every 5 seconds
+        setInterval(fetchLogs, 5000);
+
+        // Initial call to fetch logs
+        fetchLogs();
 
         // Run git pull
         function gitPull() {
