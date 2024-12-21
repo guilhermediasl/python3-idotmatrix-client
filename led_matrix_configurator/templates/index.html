@@ -27,19 +27,22 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
-        pre {
-            width: 100%;
-            height: 300px;
-            padding: 10px;
-            font-family: monospace;
-            font-size: 1rem;
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1em;
+        }
+        .config-item label {
+            margin-bottom: 0.5em;
+            color: #BD93F9;
+            font-weight: bold;
+        }
+        .config-item input {
+            padding: 0.5em;
             border: 1px solid #6272a4;
             border-radius: 4px;
             background: #282a36;
             color: #f8f8f2;
-            margin-bottom: 1em;
-            overflow: auto;
-            white-space: pre-wrap;
         }
         button {
             display: inline-block;
@@ -65,21 +68,6 @@
             gap: 10px;
             justify-content: center;
         }
-        .dracula .key {
-            color: #8be9fd;
-        }
-        .dracula .colon {
-            color: #ff79c6;
-        }
-        .dracula .value {
-            color: #bd93f9;
-        }
-        .dracula .string {
-            color: #f1fa8c;
-        }
-        .dracula .comma, .dracula .brace {
-            color: #f8f8f2;
-        }
     </style>
 </head>
 <body>
@@ -89,7 +77,7 @@
     <main>
         <section>
             <h2>Edit Configuration</h2>
-            <pre id="configContent" class="dracula"></pre>
+            <div id="configContent"></div>
             <div class="button-group">
                 <button type="button" onclick="saveConfig()">Save Config</button>
                 <button type="button" onclick="reloadConfig()">Reload Config</button>
@@ -117,8 +105,17 @@
             fetch('/config')
                 .then(response => response.json())
                 .then(data => {
-                    const jsonContent = JSON.stringify(data.config, null, 4);
-                    document.getElementById("configContent").innerHTML = applyDraculaTheme(jsonContent);
+                    const configContent = document.getElementById("configContent");
+                    configContent.innerHTML = '';
+                    for (const [key, value] of Object.entries(data.config)) {
+                        const configItem = document.createElement('div');
+                        configItem.className = 'config-item';
+                        configItem.innerHTML = `
+                            <label for="${key}">${key}</label>
+                            <input type="text" id="${key}" name="${key}" value="${value}">
+                        `;
+                        configContent.appendChild(configItem);
+                    }
                 })
                 .catch(error => {
                     alert("Failed to load configuration: " + error.message);
@@ -130,11 +127,16 @@
 
         // Save config
         function saveConfig() {
-            const content = document.getElementById("configContent").innerText;
+            const configContent = document.getElementById("configContent");
+            const inputs = configContent.querySelectorAll('input');
+            const config = {};
+            inputs.forEach(input => {
+                config[input.name] = input.value;
+            });
             fetch('/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: content
+                body: JSON.stringify(config)
             })
             .then(response => response.json())
             .then(data => {
@@ -183,16 +185,6 @@
                 .catch(error => {
                     document.getElementById("runOutput").innerText = "Network error: " + error.message;
                 });
-        }
-
-        // Apply Dracula theme to JSON
-        function applyDraculaTheme(json) {
-            return json.replace(/("(.*?)")(\s*:\s*)("(.*?)"|[\d.]+)/g, (match, p1, p2, p3, p4) => {
-                const valueClass = /^"/.test(p4) ? 'string' : 'value';
-                return `<span class="key">${p1}</span><span class="colon">${p3}</span><span class="${valueClass}">${p4}</span>`;
-            }).replace(/([{}[\],])/g, (match) => {
-                return `<span class="brace">${match}</span>`;
-            });
         }
     </script>
 </body>
