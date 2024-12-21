@@ -11,12 +11,13 @@ from patterns import digit_patterns, arrow_patterns, signal_patterns
 from util import Color, EntrieEnum, GlucoseItem, TreatmentEnum
 
 class PixelMatrix:
-    def __init__(self, matrix_size: int, min_glucose: int, max_glucose: int, GLUCOSE_LOW, GLUCOSE_HIGH):
+    def __init__(self, matrix_size: int, min_glucose: int, max_glucose: int, GLUCOSE_LOW, GLUCOSE_HIGH, night_brightness):
         self.min_glucose = min_glucose
         self.matrix_size = matrix_size
         self.max_glucose = max_glucose
         self.GLUCOSE_LOW = GLUCOSE_LOW
         self.GLUCOSE_HIGH = GLUCOSE_HIGH
+        self.night_brightness = night_brightness
         self.pixels = [[[0, 0, 0] for _ in range(matrix_size)] for _ in range(matrix_size)]
 
     def set_formmated_entries(self, formmated_entries):
@@ -189,7 +190,7 @@ class PixelMatrix:
         current_hour = current_time.hour
 
         if 21 <= current_hour or current_hour < 6:
-            return 0.1
+            return self.night_brightness
         else:
             return 1.0
         

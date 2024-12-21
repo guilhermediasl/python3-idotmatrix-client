@@ -195,7 +195,7 @@ class GlucoseMatrixDisplay:
         
         exercise_indexes = self.get_exercises_index()
 
-        pixelMatrix: PixelMatrix = PixelMatrix(self.matrix_size,self.min_glucose,self.max_glucose, self.GLUCOSE_LOW, self.GLUCOSE_HIGHT)
+        pixelMatrix: PixelMatrix = PixelMatrix(self.matrix_size,self.min_glucose,self.max_glucose, self.GLUCOSE_LOW, self.GLUCOSE_HIGHT, self.night_brightness)
         pixelMatrix.set_formmated_entries(self.formmated_entries)
         pixelMatrix.set_formmated_treatments(self.formmated_treatments)
         pixelMatrix.set_arrow(self.arrow)
