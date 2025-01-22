@@ -73,11 +73,33 @@ class PixelMatrix:
         for x in range(start_x, finish_x):
             self.set_pixel(x, y, *color)
 
+    def get_out_of_range_glucose_str(self, glucose: int) -> str:
+        if glucose <= 39:
+            return "LOW"
+        elif glucose >= 400:
+            return "HIGH"
+        else:
+            return glucose
+    
+    def is_glucose_out_of_range(self, glucose: int) -> bool:
+        return glucose <= 39 or glucose >= 400
+
+    def get_digits_width(self, glucose_str: str) -> int:
+        width = 0
+        for digit in glucose_str:
+            width += len(digit_patterns()[digit][0])
+        return width
+
     def display_glucose_on_matrix(self, glucose_value: int):
-        glucose_str = str(glucose_value)
+        if self.is_glucose_out_of_range(glucose_value):
+            glucose_str = self.get_out_of_range_glucose_str(glucose_value)
+        else:
+            glucose_str = str(glucose_value)
+
         color = Color.white
+
         digit_width, digit_height, spacing = 3, 5, 1
-        digits_width = len(glucose_str) * (digit_width + spacing)
+        digits_width = len(glucose_str) * spacing + self.get_digits_width(glucose_str)
 
         arrow_pattern = arrow_patterns().get(self.arrow, np.zeros((5, 5)))
         arrow_width = arrow_pattern.shape[1] + spacing
