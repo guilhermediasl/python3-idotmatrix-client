@@ -118,7 +118,7 @@ class PixelMatrix:
                 for j, value in enumerate(row):
                     if value:
                         self.set_pixel(x_position + j, y_position + i, *color)
-            x_position += digit_width + spacing
+            x_position += self.get_digit_width(digit) + spacing
 
         for i, row in enumerate(arrow_pattern):
             for j, value in enumerate(row):
@@ -140,7 +140,10 @@ class PixelMatrix:
                     if value:
                         self.set_pixel(x_position + j, y_position + i, *color)
             x_position += digit_width + spacing
-    
+
+    def get_digit_width(self, digit: str) -> int:
+        return len(digit_patterns()[digit][0])
+
     def display_entries(self, formmated_entries: List[GlucoseItem]):
         for idx, entry in enumerate(formmated_entries[:self.matrix_size]):
             x = self.matrix_size - idx - 1
