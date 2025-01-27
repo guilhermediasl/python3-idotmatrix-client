@@ -93,10 +93,11 @@ class PixelMatrix:
     def display_glucose_on_matrix(self, glucose_value: int):
         if self.is_glucose_out_of_range(glucose_value):
             glucose_str = self.get_out_of_range_glucose_str(glucose_value)
+            color = Color.red
         else:
             glucose_str = str(glucose_value)
+            color = Color.white
 
-        color = Color.white
 
         digit_width, digit_height, spacing = 3, 5, 1
         digits_width = len(glucose_str) * spacing + self.get_digits_width(glucose_str)
