@@ -14,7 +14,7 @@ class Color:
     green  = (70, 167, 10)
     yellow = (244, 170, 0)
     purple = (250, 0, 105)
-    white  = (230, 170, 60)
+    white  = (240, 180, 70)
     blue   = (40, 150, 125)
     orange = (245, 70, 0)
     black  = (0,0,0)
