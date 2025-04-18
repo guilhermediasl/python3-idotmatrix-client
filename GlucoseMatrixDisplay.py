@@ -347,7 +347,7 @@ class GlucoseMatrixDisplay:
 
     def fade_color(self, color, percentil):
         corrected_color = []
-        LOW_BRIGHTNESS_CORRECTION = 2  # Higher = more aggressive correction at low brightness
+        LOW_BRIGHTNESS_CORRECTION = 3  # Higher = more aggressive correction at low brightness
 
         for i, item in enumerate(color):
             if i == 0:  # Red
