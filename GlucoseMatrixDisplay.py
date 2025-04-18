@@ -272,7 +272,7 @@ class GlucoseMatrixDisplay:
 
         return exercise_indexes
 
-    def generate_list_from_entries_json(self):
+    def generate_list_from_entries_json(self, entries_margin = 3):
         for item in self.json_entries_data:
             treatment_date = datetime.datetime.strptime(item.get("dateString"), "%Y-%m-%dT%H:%M:%S.%fZ")
             treatment_date += datetime.timedelta(minutes= -180)
@@ -286,7 +286,7 @@ class GlucoseMatrixDisplay:
                                                   item.get(EntrieEnum.MBG),
                                                   treatment_date))
             
-            if len(self.formmated_entries) == self.matrix_size:
+            if len(self.formmated_entries) == self.matrix_size + entries_margin:
                 break
 
     def generate_list_from_treatments_json(self):

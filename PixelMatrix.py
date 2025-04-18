@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import math
 from typing import List
@@ -91,6 +91,8 @@ class PixelMatrix:
         return width
 
     def display_glucose_on_matrix(self, glucose_value: int):
+        digit_width, digit_height, spacing = 3, 5, 1
+
         if self.is_glucose_out_of_range(glucose_value):
             glucose_str = self.get_out_of_range_glucose_str(glucose_value)
             color = Color.red
@@ -99,7 +101,6 @@ class PixelMatrix:
             color = Color.white
 
 
-        digit_width, digit_height, spacing = 3, 5, 1
         digits_width = len(glucose_str) * spacing + self.get_digits_width(glucose_str)
 
         arrow_pattern = arrow_patterns().get(self.arrow, np.zeros((5, 5)))
@@ -146,11 +147,24 @@ class PixelMatrix:
         return len(digit_patterns()[digit][0])
 
     def display_entries(self, formmated_entries: List[GlucoseItem]):
-        for idx, entry in enumerate(formmated_entries[:self.matrix_size]):
-            x = self.matrix_size - idx - 1
-            y = self.glucose_to_y_coordinate(entry.glucose)
-            r, g, b = self.determine_color(entry.glucose, entry_type=entry.type)
-            self.set_pixel(x, y, r, g, b)
+        self.glucose_plot = [[] for _ in range(self.matrix_size)]
+        
+        now = datetime.now()
+
+        for entry in formmated_entries:
+            time_diff_minutes = (now - entry.date).total_seconds() / 60
+            idx = int(time_diff_minutes // 5)
+            
+            if 0 <= idx < self.matrix_size:
+                self.glucose_plot[idx].append(entry.glucose)
+
+        for idx, glucose_values in enumerate(self.glucose_plot):
+            if glucose_values:
+                median_glucose = int(np.average(glucose_values))
+                x = self.matrix_size - idx - 1
+                y = self.glucose_to_y_coordinate(median_glucose)
+                r, g, b = self.determine_color(median_glucose)
+                self.set_pixel(x, y, r, g, b)
 
     def get_low_brightness_pixels(self):
         brightness = self.get_brightness_on_hour()
@@ -258,7 +272,7 @@ class PixelMatrix:
         return max_sgv
 
     def get_min_sgv(self) -> int:
-        min_sgv = 100000
+        min_sgv = self.formmated_entries[0].glucose
         for entry in self.formmated_entries:
             min_sgv = min(min_sgv, entry.glucose)
 
