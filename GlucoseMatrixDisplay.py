@@ -345,11 +345,24 @@ class GlucoseMatrixDisplay:
         
         return time_difference_ms > self.max_time
 
+    # def fade_color(self, color, percentil):
+    #     fadded_color = []
+    #     for item in color:
+    #         fadded_color.append(math.ceil(item * percentil))
+    #     return fadded_color
+    
     def fade_color(self, color, percentil):
-        fadded_color = []
-        for item in color:
-            fadded_color.append(math.ceil(item * percentil))
-        return fadded_color
+        corrected_color = []
+        for i, item in enumerate(color):
+            if i == 0:  # Red
+                correction = self.RED_CORRECTION
+            elif i == 1:  # Green
+                correction = self.GREEN_CORRECTION
+            elif i == 2:  # Blue
+                correction = self.BLUE_CORRECTION
+            value = math.ceil(item * percentil * correction)
+            corrected_color.append(min(255, value))  # clamp to 255
+        return corrected_color
 
     def unblock_bluetooth(self):
         try:
