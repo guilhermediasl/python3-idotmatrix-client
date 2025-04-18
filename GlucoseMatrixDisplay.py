@@ -353,9 +353,10 @@ class GlucoseMatrixDisplay:
             elif i == 1:  # Green
                 correction = Color.GREEN_CORRECTION
             elif i == 2:  # Blue
-                correction = 1 - (1 - Color.BLUE_CORRECTION) * (1 - percentil) ** 2
+                LOW_BRIGHTNESS_CORRECTION = 3
+                correction = 1 - (1 - Color.BLUE_CORRECTION) * (1 - percentil) ** LOW_BRIGHTNESS_CORRECTION
             value = math.ceil(item * percentil * correction)
-            corrected_color.append(min(255, value))  # clamp to 255
+            corrected_color.append(min(255, value))
         return corrected_color
 
     def unblock_bluetooth(self):
