@@ -18,6 +18,10 @@ class Color:
     blue   = (40, 150, 125)
     orange = (245, 70, 0)
     black  = (0,0,0)
+    
+    RED_CORRECTION = 1.0
+    GREEN_CORRECTION = 1.0
+    BLUE_CORRECTION = 0.6
 
 class GlucoseItem:
     def __init__(self, type: EntrieEnum, glucose: int, date: datetime, direction: str = None):
