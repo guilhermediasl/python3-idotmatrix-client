@@ -62,7 +62,7 @@ class PixelMatrix:
             temp_color = color
             if blink:
                 if y % 2 == 0:
-                    temp_color = self.fade_color(color, 0.4)
+                    temp_color = self.fade_color(color, 0.2)
             if enable_five:
                 if not self.is_five_apart(start_y, y):
                     temp_color = self.fade_color(color, 0.5)
