@@ -19,8 +19,8 @@ class Color:
     orange = (245, 70, 0)
     black  = (0,0,0)
     
-    RED_CORRECTION = 1.0
-    GREEN_CORRECTION = 1.0
+    RED_CORRECTION = 1.2
+    GREEN_CORRECTION = 1.2
     BLUE_CORRECTION = 0.9
 
 class GlucoseItem:
