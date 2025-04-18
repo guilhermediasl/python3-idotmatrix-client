@@ -355,11 +355,11 @@ class GlucoseMatrixDisplay:
         corrected_color = []
         for i, item in enumerate(color):
             if i == 0:  # Red
-                correction = self.RED_CORRECTION
+                correction = Color.RED_CORRECTION
             elif i == 1:  # Green
-                correction = self.GREEN_CORRECTION
+                correction = Color.GREEN_CORRECTION
             elif i == 2:  # Blue
-                correction = self.BLUE_CORRECTION
+                correction = Color.BLUE_CORRECTION
             value = math.ceil(item * percentil * correction)
             corrected_color.append(min(255, value))  # clamp to 255
         return corrected_color
