@@ -59,10 +59,10 @@ class PixelMatrix:
             y_max = self.matrix_size
         
         for y in range(start_y, y_max):
+            temp_color = color
             if blink:
                 if y % 2 == 0:
-                    continue
-            temp_color = color
+                    temp_color = self.fade_color(color, 0.8)
             if enable_five:
                 if not self.is_five_apart(start_y, y):
                     temp_color = self.fade_color(color, 0.5)
