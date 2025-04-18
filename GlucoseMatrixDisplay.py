@@ -353,7 +353,7 @@ class GlucoseMatrixDisplay:
             elif i == 1:  # Green
                 correction = Color.GREEN_CORRECTION
             elif i == 2:  # Blue
-                LOW_BRIGHTNESS_CORRECTION = 5
+                LOW_BRIGHTNESS_CORRECTION = 2
                 correction = 1 - (1 - Color.BLUE_CORRECTION) * (1 - percentil) ** LOW_BRIGHTNESS_CORRECTION
             value = round(item * percentil * correction)
             corrected_color.append(min(255, value))
