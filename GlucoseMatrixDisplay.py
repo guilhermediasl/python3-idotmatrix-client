@@ -347,16 +347,20 @@ class GlucoseMatrixDisplay:
 
     def fade_color(self, color, percentil):
         corrected_color = []
+        LOW_BRIGHTNESS_CORRECTION = 2  # Higher = more aggressive correction at low brightness
+
         for i, item in enumerate(color):
             if i == 0:  # Red
                 correction = Color.RED_CORRECTION
             elif i == 1:  # Green
                 correction = Color.GREEN_CORRECTION
             elif i == 2:  # Blue
-                LOW_BRIGHTNESS_CORRECTION = 2
+                # Dynamic blue correction at low brightness
                 correction = 1 - (1 - Color.BLUE_CORRECTION) * (1 - percentil) ** LOW_BRIGHTNESS_CORRECTION
-            value = round(item * correction)
+
+            value = round(item * percentil * correction)
             corrected_color.append(min(255, value))
+
         return corrected_color
 
     def unblock_bluetooth(self):
