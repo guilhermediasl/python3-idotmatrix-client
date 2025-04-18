@@ -203,6 +203,10 @@ class GlucoseMatrixDisplay:
  
         pixelMatrix.display_glucose_on_matrix(self.first_value)
 
+        pixelMatrix.draw_vertical_line(self.matrix_size - 1 - 12, self.fade_color(Color.white, 0.1),
+                                       self.GLUCOSE_HIGHT, 18, blink=True)
+        pixelMatrix.draw_vertical_line(self.matrix_size - 1 - 24, self.fade_color(Color.white, 0.1),
+                                       self.GLUCOSE_HIGHT, 18, blink=True)
         pixelMatrix.draw_horizontal_line(self.GLUCOSE_LOW, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
         pixelMatrix.draw_horizontal_line(self.GLUCOSE_HIGHT, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
 
