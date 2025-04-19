@@ -76,6 +76,55 @@ class PixelMatrix:
         for x in range(start_x, finish_x):
             self.set_pixel(x, y, *color)
 
+    def draw_axis(self) -> None:
+        # Draw hour indicators lines
+        for idx in (12, 24):
+            self.draw_vertical_line(self.matrix_size - 1 - idx, self.fade_color(Color.white, 0.02), self.GLUCOSE_HIGH, 18, blink=True)
+
+        # Draw glucose boundaries lines
+        for glucose in (self.GLUCOSE_LOW, self.GLUCOSE_HIGH):
+            self.draw_horizontal_line(glucose, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
+
+    def draw_iob(self, iob_list: List[float]) -> None:
+        for id,iob in enumerate(iob_list):
+            fractional_iob, integer_iob = math.modf(iob)
+            integer_iob = int(integer_iob)
+
+            self.draw_vertical_line(self.matrix_size - id - 1,
+                                            self.fade_color(Color.blue, 0.05),
+                                            self.GLUCOSE_HIGH,
+                                            integer_iob)
+
+            if fractional_iob <= 0.1: continue
+
+            self.set_interpoleted_pixel(self.matrix_size - id - 1,
+                                                integer_iob,
+                                                self.GLUCOSE_HIGH,
+                                                self.fade_color(Color.blue, 0.05),
+                                                fractional_iob)
+
+    def draw_carbs(self, carbs_with_x_values: List[tuple]) -> None:
+        for treatment in carbs_with_x_values:
+            self.draw_vertical_line(treatment[0],
+                                    self.fade_color(Color.orange, 0.2),
+                                    self.GLUCOSE_HIGH,
+                                    treatment[1],
+                                    True)
+
+    def draw_bolus(self, bolus_with_x_values: List[tuple]) -> None:
+        for treatment in bolus_with_x_values:
+            self.draw_vertical_line(treatment[0],
+                                    self.fade_color(Color.blue, 0.3),
+                                    self.GLUCOSE_HIGH,
+                                    treatment[1],
+                                    True)
+
+    def draw_exercise(self, exercise_indexes: List[int]) -> None:
+        for exercise_index in exercise_indexes:
+            self.set_pixel(exercise_index, self.glucose_to_y_coordinate(self.GLUCOSE_HIGH) + 1, *self.fade_color(Color.purple, 0.5))
+            self.set_pixel(exercise_index, self.glucose_to_y_coordinate(self.GLUCOSE_LOW) + 1, *self.fade_color(Color.purple, 0.5))
+
+
     def get_out_of_range_glucose_str(self, glucose: int) -> str:
         if glucose <= 39:
             return "LOW"

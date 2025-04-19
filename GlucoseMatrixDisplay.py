@@ -195,7 +195,7 @@ class GlucoseMatrixDisplay:
         
         exercise_indexes = self.get_exercises_index()
 
-        pixelMatrix: PixelMatrix = PixelMatrix(self.matrix_size,self.min_glucose,self.max_glucose, self.GLUCOSE_LOW, self.GLUCOSE_HIGHT, self.night_brightness)
+        pixelMatrix = PixelMatrix(self.matrix_size,self.min_glucose,self.max_glucose, self.GLUCOSE_LOW, self.GLUCOSE_HIGHT, self.night_brightness)
         pixelMatrix.set_formmated_entries(self.formmated_entries)
         pixelMatrix.set_formmated_treatments(self.formmated_treatments)
         pixelMatrix.set_arrow(self.arrow)
@@ -203,49 +203,12 @@ class GlucoseMatrixDisplay:
  
         pixelMatrix.display_glucose_on_matrix(self.first_value)
 
-        pixelMatrix.draw_vertical_line(self.matrix_size - 1 - 12, self.fade_color(Color.white, 0.02),
-                                       self.GLUCOSE_HIGHT, 18, blink=True)
-        pixelMatrix.draw_vertical_line(self.matrix_size - 1 - 24, self.fade_color(Color.white, 0.02),
-                                       self.GLUCOSE_HIGHT, 18, blink=True)
-        pixelMatrix.draw_horizontal_line(self.GLUCOSE_LOW, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
-        pixelMatrix.draw_horizontal_line(self.GLUCOSE_HIGHT, self.fade_color(Color.white, 0.1), 0, self.matrix_size)
+        pixelMatrix.draw_axis()
 
-        for id,iob in enumerate(self.iob_list):
-            fractional_iob, integer_iob = math.modf(iob)
-            integer_iob = int(integer_iob)
-
-            pixelMatrix.draw_vertical_line(self.matrix_size - id - 1,
-                                            self.fade_color(Color.blue, 0.05),
-                                            self.GLUCOSE_HIGHT,
-                                            integer_iob)
-            
-            if fractional_iob <= 0.1: continue
-            
-            pixelMatrix.set_interpoleted_pixel(self.matrix_size - id - 1,
-                                               integer_iob,
-                                               self.GLUCOSE_HIGHT,
-                                               self.fade_color(Color.blue, 0.05),
-                                               fractional_iob)
-
-        for treatment in carbs_with_x_values:
-            pixelMatrix.draw_vertical_line(treatment[0],
-                                            self.fade_color(Color.orange, 0.2),
-                                            self.GLUCOSE_HIGHT,
-                                            treatment[1],
-                                            True)
-
-        for treatment in bolus_with_x_values:
-            pixelMatrix.draw_vertical_line(treatment[0],
-                                            self.fade_color(Color.blue, 0.3),
-                                            self.GLUCOSE_HIGHT,
-                                            treatment[1],
-                                            True)
-
-
-        for exercise_index in exercise_indexes:
-            pixelMatrix.set_pixel(exercise_index, pixelMatrix.glucose_to_y_coordinate(self.GLUCOSE_HIGHT) + 1, *self.fade_color(Color.purple, 0.5))
-            pixelMatrix.set_pixel(exercise_index, pixelMatrix.glucose_to_y_coordinate(self.GLUCOSE_LOW) + 1, *self.fade_color(Color.purple, 0.5))
-
+        pixelMatrix.draw_iob(self.iob_list)
+        pixelMatrix.draw_carbs(carbs_with_x_values)
+        pixelMatrix.draw_bolus(bolus_with_x_values)
+        pixelMatrix.draw_exercise(exercise_indexes)
         pixelMatrix.display_entries(self.formmated_entries)
 
         return pixelMatrix
