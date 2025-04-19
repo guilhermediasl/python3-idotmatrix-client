@@ -333,20 +333,8 @@ class PixelMatrix:
     def is_five_apart(self, init: int, current: int) -> bool:
         return (current - init + 1) % 5 == 0
 
-    def fade_color(self, color, percentil):
-        corrected_color = []
-        LOW_BRIGHTNESS_CORRECTION = 5  # Higher = more aggressive correction at low brightness
-
-        for i, item in enumerate(color):
-            if i == 0:  # Red
-                correction = Color.RED_CORRECTION
-            elif i == 1:  # Green
-                correction = Color.GREEN_CORRECTION
-            elif i == 2:  # Blue
-                # Dynamic blue correction at low brightness
-                correction = 1 - (1 - Color.BLUE_CORRECTION) * (1 - percentil) ** LOW_BRIGHTNESS_CORRECTION
-
-            value = round(item * percentil * correction)
-            corrected_color.append(min(255, value))
-
-        return corrected_color
+    def fade_color(self, color: List[int], percentil: float) -> List[int]:
+        fadded_color = []
+        for item in color:
+            fadded_color.append(math.ceil(item * percentil))
+        return fadded_color
