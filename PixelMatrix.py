@@ -337,5 +337,4 @@ class PixelMatrix:
         fadded_color = []
         for item in color:
             fadded_color.append(math.ceil(item * percentil))
-        fadded_color = [fadded_color[0], fadded_color[1], max(0, min(255, fadded_color[2] - 1))]
         return fadded_color
