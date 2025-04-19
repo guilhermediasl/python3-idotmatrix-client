@@ -347,7 +347,7 @@ class PixelMatrix:
         correction_factors = (red_green_correction, red_green_correction, 1.0)
 
         for idx, item in enumerate(color):
-            corrected = round(item * percentil * correction_factors[idx])
+            corrected = math.ceil(item * percentil * correction_factors[idx])
             corrected_color.append(min(255, max(0, corrected)))
 
         return corrected_color
