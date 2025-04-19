@@ -336,16 +336,15 @@ class PixelMatrix:
     def fade_color(self, color: List[int], percentil: float) -> List[int]:
         corrected_color = []
 
-        # As percentil decreases, this increases R/G more to compensate blue
-        # At percentil = 1.0 -> correction = 1.0 (no boost)
-        # At percentil = 0.1 -> correction ~ 1.5 (strong boost)
-        EXPONENT = 2.0
-        base_correction = 1.0
-        boost_correction = 1.5  # max boost at very low percentil
+        # Smooth the boost more aggressively toward low percentils
+        BASE = 1.0
+        MAX_BOOST = 1.5
+        EXPONENT = 4.0  # Was 2.0 — steeper drop-off at high percentils
 
-        red_green_correction = base_correction + (boost_correction - base_correction) * (1 - percentil) ** EXPONENT
+        # Only boost red/green when brightness is low
+        red_green_correction = BASE + (MAX_BOOST - BASE) * ((1 - percentil) ** EXPONENT)
 
-        correction_factors = (red_green_correction, red_green_correction, 1.0)  # R, G, B
+        correction_factors = (red_green_correction, red_green_correction, 1.0)
 
         for idx, item in enumerate(color):
             corrected = round(item * percentil * correction_factors[idx])
