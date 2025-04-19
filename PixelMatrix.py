@@ -339,7 +339,7 @@ class PixelMatrix:
         # Smooth the boost more aggressively toward low percentils
         BASE = 1.0
         MAX_BOOST = 1.5
-        EXPONENT = 4.0  # Was 2.0 — steeper drop-off at high percentils
+        EXPONENT = 8.0  # Was 2.0 — steeper drop-off at high percentils
 
         # Only boost red/green when brightness is low
         red_green_correction = BASE + (MAX_BOOST - BASE) * ((1 - percentil) ** EXPONENT)
