@@ -10,7 +10,7 @@ import datetime
 import logging
 from typing import List
 from http.client import RemoteDisconnected
-from util import Color, GlucoseItem, TreatmentItem, ExerciseItem, TreatmentEnum, EntrieEnum
+from util import GlucoseItem, TreatmentItem, ExerciseItem, TreatmentEnum, EntrieEnum
 from PixelMatrix import PixelMatrix
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -305,26 +305,8 @@ class GlucoseMatrixDisplay:
         seconds = int(time_difference_sec % 60)
 
         logging.info(f"The data is {minutes:02d}:{seconds:02d} old.")
-        
+
         return time_difference_ms > self.max_time
-
-    def fade_color(self, color, percentil):
-        corrected_color = []
-        LOW_BRIGHTNESS_CORRECTION = 5  # Higher = more aggressive correction at low brightness
-
-        for i, item in enumerate(color):
-            if i == 0:  # Red
-                correction = Color.RED_CORRECTION
-            elif i == 1:  # Green
-                correction = Color.GREEN_CORRECTION
-            elif i == 2:  # Blue
-                # Dynamic blue correction at low brightness
-                correction = 1 - (1 - Color.BLUE_CORRECTION) * (1 - percentil) ** LOW_BRIGHTNESS_CORRECTION
-
-            value = round(item * percentil * correction)
-            corrected_color.append(min(255, value))
-
-        return corrected_color
 
     def unblock_bluetooth(self):
         try:

@@ -286,7 +286,7 @@ class PixelMatrix:
         else:
             return 1.0
         
-    def determine_color(self, glucose: int, entry_type=EntrieEnum.SGV) -> List[int]:
+    def determine_color(self, glucose: int, entry_type=EntrieEnum) -> List[int]:
         if entry_type == EntrieEnum.MBG:
             return Color.white
 
