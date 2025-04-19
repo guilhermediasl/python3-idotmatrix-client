@@ -335,6 +335,8 @@ class PixelMatrix:
 
     def fade_color(self, color: List[int], percentil: float) -> List[int]:
         fadded_color = []
-        for item in color:
-            fadded_color.append(math.ceil(item * percentil))
+        color_correction = (1.2, 1.2, 1)
+        for idx,item in enumerate(color):
+            fadded_color.append(math.ceil(item * percentil * color_correction[idx]))
+        fadded_color = [min(255, max(0, item)) for item in fadded_color]
         return fadded_color
