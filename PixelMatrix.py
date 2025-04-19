@@ -337,9 +337,9 @@ class PixelMatrix:
         corrected_color = []
 
         # Smooth the boost more aggressively toward low percentils
-        BASE = 1.0
+        BASE = 1.1
         MAX_BOOST = 1.5
-        EXPONENT = 8.0  # Was 2.0 — steeper drop-off at high percentils
+        EXPONENT = 8.0
 
         # Only boost red/green when brightness is low
         red_green_correction = BASE + (MAX_BOOST - BASE) * ((1 - percentil) ** EXPONENT)
@@ -348,6 +348,6 @@ class PixelMatrix:
 
         for idx, item in enumerate(color):
             corrected = round(item * percentil * correction_factors[idx])
-            corrected_color.append(min(255, max(1, corrected)))
+            corrected_color.append(min(255, max(0, corrected)))
 
         return corrected_color
