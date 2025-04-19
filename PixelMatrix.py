@@ -337,7 +337,7 @@ class PixelMatrix:
         corrected_color = []
 
         # Smooth the boost more aggressively toward low percentils
-        BASE = 1.1
+        BASE = 0.8
         MAX_BOOST = 1.5
         EXPONENT = 8.0
 
