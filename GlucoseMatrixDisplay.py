@@ -20,7 +20,7 @@ class GlucoseMatrixDisplay:
         self.matrix_size = matrix_size
         self.min_glucose = min_glucose
         self.max_glucose = max_glucose
-        self.max_time = 1200000 #milliseconds
+        self.max_time = 5 * 60 * 1000 * self.matrix_size #milliseconds
         self.config = self.load_config(config_path)
         self.ip = self.config.get('ip')
         token = self.config.get('token')
